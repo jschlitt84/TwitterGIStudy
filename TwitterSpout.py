@@ -22,7 +22,7 @@ def getConfig(directory):
                 None
             params[line[0]] = line[1]
     print "loaded params:"
-    for key,item in params:
+    for key,item in params.iteritems():
         print '\t*', item,':', key
     return params
     
