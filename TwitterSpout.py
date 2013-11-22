@@ -21,9 +21,9 @@ def getConfig(directory):
             except:
                 None
             params[line[0]] = line[1]
-    print "loaded params:"
+    print "\nLoaded params:"
     for key,item in params.iteritems():
-        print '\t*', item,':', key
+        print '\t*', key,':', item
     return params
     
 getConfig('')
