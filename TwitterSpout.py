@@ -5,7 +5,7 @@ def getConfig(directory):
     params = {}
     if directory == "null":
         directory = ''
-    fileIn = open(directory)
+    fileIn = open(directory+'config')
     content = fileIn.readlines()
     for item in content:
         if ' = ' in item:
