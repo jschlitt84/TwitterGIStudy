@@ -1,5 +1,8 @@
 import sys, os
 import json
+import tweepy
+
+paramsNeeded = ['consumerToken','consumerSecret']
 
 def getConfig(directory):
     params = {}
@@ -26,4 +29,24 @@ def getConfig(directory):
         print '\t*', key,':', item
     return params
     
-getConfig('')
+
+def getAuth(cfg):
+    auth1 = tweepy.auth.OAuthHandler(cfg['consumerKey'],cfg['consumerSecret'])
+    auth1.set_access_token(cfg['accessToken'],cfg['accessTokenSecret'])
+    api = tweepy.API(auth1)
+    api.update_status('Tweepy: Hello World')
+    return api
+
+
+
+
+def main():
+    try:
+        directory = sys.argv[1]
+    except:
+        directory = os.getcwd() + '/'
+    cfg = getConfig(directory)
+    api = getAuth(cfg)
+
+
+main()
