@@ -1,9 +1,19 @@
 import sys, os
 import json
-import tweepy as tw
+import tweepy
 import tweepy.streaming
 import time
 
+expected = ['Lat1','Lat2','Lon1','Lon2']
+
+@classmethod
+def parse(cls, api, raw):
+	status = cls.first_parse(api, raw)
+	setattr(status, 'json', json.dumps(raw))
+	return status
+
+tweepy.models.Status.first_parse = tweepy.models.Status.parse
+tweepy.models.Status.parse = parse
 
 def getConfig(directory):
     params = {}
@@ -28,24 +38,50 @@ def getConfig(directory):
     print "\nLoaded params:"
     for key,item in params.iteritems():
         print '\t*', key,':', item
+    
+    if params['Lat1']>params['Lat2']:
+        params['Lat1'],params['Lat2'] = params['Lat2'],params['Lat1']
+    if params['Lon1']>params['Lon2']:
+        params['Lon1'],params['Lon2'] = params['Lon2'],params['Lon1']
+        
     return params
-    
-    
+
+
+   
+ #Filters out non alphanumeric characters, leaves hashtags   
 def stripWords(text):
     listed = ''.join((c if (c.isalnum() or c == '#') else ' ') for c in text).split()
     return listed
     
     
 def getWords(directory, name):
-    with open (directory+'words', 'r') as fileIn:
-        data=fileIn.read().replace('\n', ' ')
-    return(stripWords(data))
-    
+    with open (directory+name, 'r') as fileIn:
+        text=fileIn.read()
+        while '  ' in text:
+            text = text.replace('  ',' ')
+    data = text.split('\n')
+    toDelete = []
+    for pos in range(len(data)):
+        entry = data[pos]
+        while entry.startswith(' '):
+            entry = entry[1:]
+        while entry.endswith(' '):
+            entry = entry[:-1]
+        if entry == '':
+            toDelete.append(pos)
+        data[pos] = entry
+    if len(toDelete) != 0:
+        toDelete.reverse()
+        for ref in toDelete:
+            del data[ref]
+    print toDelete
+    return data
+
     
 def getAuth(cfg):
-    auth1 = tw.auth.OAuthHandler(cfg['consumerKey'],cfg['consumerSecret'])
+    auth1 = tweepy.auth.OAuthHandler(cfg['consumerKey'],cfg['consumerSecret'])
     auth1.set_access_token(cfg['accessToken'],cfg['accessTokenSecret'])
-    api = tw.API(auth1)
+    api = tweepy.API(auth1)
     return {'auth':auth1,'api':api}
 
 
@@ -55,19 +91,19 @@ def postTweet(api,text,image):
         print "posted tweet:", text
         
         
-def getTweets(login, cfg, words, qualifiers):
-    print "DEBUG 1"
+def getTweets(login, cfg, conditions, qualifiers):
+    print "Setting up listener"
     ear = giListener()
-    print "DEBUG 2"
-    stream = tw.Stream(login['auth'], ear, timeout=30.0)
-    print "DEBUG 3"
+    print "Starting stream"
+    stream = tweepy.Stream(login['auth'], ear, timeout=30.0)
+    print "Filtering stream"
     #stream.filter(locations=[cfg['lat1'],cfg['lon1'],cfg['lat2'],cfg['lon2']], async=False, track = [])
-    stream.filter(track = words)
+    stream.filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = conditions)
     print "DEBUG 4"
     
     """while True:
         try:
-            #stream.filter(locations=[cfg['lat1'],cfg['lon1'],cfg['lat2'],cfg['lon2']], async=False, track = words)
+            #stream.filter(locations=[cfg['lat1'],cfg['lon1'],cfg['lat2'],cfg['lon2']], async=False, track = conditions)
             stream.filter(locations=[cfg['lat1'],cfg['lon1'],cfg['lat2'],cfg['lon2']], async=False, track = [])
             break
         except Exception, e:
@@ -77,7 +113,7 @@ def getTweets(login, cfg, words, qualifiers):
             time.sleep(delay) """
              
              
-class giListener(tw.StreamListener):
+class giListener(tweepy.StreamListener):
     def on_status(self, status):
         # We'll simply print some values in a tab-delimited format
         # suitable for capturing to a flat file but you could opt 
@@ -110,11 +146,12 @@ def main():
     except:
         directory = os.getcwd() + '/'
     cfg = getConfig(directory)
-    words = getWords(directory, 'keywords')
-    print "Loaded Keywords:", words
+    conditions = getWords(directory, 'conditions')
+    print "Loaded Conditions:", conditions
     qualifiers = getWords(directory, 'qualifiers')
     print "Loaded Qualifiers:", qualifiers
     login = getAuth(cfg)
-    getTweets(login,cfg,words,qualifiers)
+    print "Ready to run...", raw_input()
+    getTweets(login,cfg,conditions,qualifiers)
 
 main()
