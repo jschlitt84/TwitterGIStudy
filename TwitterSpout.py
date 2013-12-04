@@ -1,12 +1,11 @@
 import sys, os
 import json
 import tweepy
-import tweepy.streaming
+from tweepy.streaming import StreamListener
 import time
+import multiprocessing
 
-conditions = []
-qualifiers = {}
-expected = ['Lat1','Lat2','Lon1','Lon2']
+expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers']
 
 
 #Hacky patch for raw json access, not granted in newest tweepy version
@@ -44,6 +43,11 @@ def getConfig(directory):
     print "\nLoaded params:"
     for key,item in params.iteritems():
         print '\t*', key,':', item
+        
+    logins = params['Logins'].replace(',','')
+    while '  ' in logins:
+        logins = logins.replace('  ',' ')
+    params['Logins'] = logins.split(' ')
     
     if params['Lat1']>params['Lat2']:
         params['Lat1'],params['Lat2'] = params['Lat2'],params['Lat1']
@@ -52,6 +56,35 @@ def getConfig(directory):
         
     return params
 
+def getLogins(directory, files):
+    logins = {}
+    params = {}
+    
+    for fileName in files:
+        if directory == "null":
+            directory = ''
+        print "\nLoading login file:", directory + fileName
+        fileIn = open(directory+fileName)
+        content = fileIn.readlines()
+        for item in content:
+            if ' = ' in item:
+                while '  ' in item:
+                    item = item.replace('  ',' ')
+                while '\n' in item:
+                    item = item.replace('\n','')
+                line = item.split(' = ')
+                try:
+                    line[1] = float(line[1])
+                    if line[1] == int(line[1]):
+                        line[1] = int(line[1])
+                except:
+                    None
+                params[line[0]] = line[1]
+        for key,item in params.iteritems():
+            print '\t*', key,':', item
+        logins[fileName] = params
+    return logins
+    
 
    
 #Filters out non alphanumeric characters, leaves hashtags   
@@ -86,9 +119,9 @@ def getWords(directory, name):
 
     
 #Return authorization object
-def getAuth(cfg):
-    auth1 = tweepy.auth.OAuthHandler(cfg['consumerKey'],cfg['consumerSecret'])
-    auth1.set_access_token(cfg['accessToken'],cfg['accessTokenSecret'])
+def getAuth(login):
+    auth1 = tweepy.auth.OAuthHandler(login['consumerKey'],login['consumerSecret'])
+    auth1.set_access_token(login['accessToken'],login['accessTokenSecret'])
     api = tweepy.API(auth1)
     return {'auth':auth1,'api':api}
 
@@ -100,13 +133,27 @@ def postTweet(api,text,image):
         print "posted tweet:", text
         
         
-def getTweets(login, cfg):
-    print "Setting up listener"
-    ear = giListener(tweepy.StreamListener,)
-    print "Starting stream"
-    stream = tweepy.Stream(login['auth'], ear, timeout=30.0)
-    print "Filtering stream"
-    stream.filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = conditions)
+def getTweets(logins, cfg, conditions, qualifiers):
+    print "Setting up listeners"
+    ears = {}
+    streams = {}
+    for key,login in logins.iteritems():
+        try:
+            ears[key] = giListener(conditions,qualifiers,logins[key]['auth']['api'],key)
+            print "Logging in via", key,"credentials file"
+        except:
+            print "Could not login via", key, "credentials file"""
+        
+    print ears.items()
+    
+    for key, ear in ears.iteritems():
+        print "Starting stream:", key
+        streams[key] = tweepy.Stream(logins[key]['auth']['auth'], ear, timeout=30.0)
+    
+    print streams.items()
+    
+    for key, stream in streams.iteritems():
+        streams[key].filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = conditions)
     
     """while True:
         try:
@@ -121,28 +168,34 @@ def getTweets(login, cfg):
              
              
 class giListener(tweepy.StreamListener):
+    def __init__(self, conditions, qualifiers,api,name):
+        self.qualifiers = qualifiers
+        self.conditions = conditions
+        self.api = api
+        self.name = name
+        print "Initiated listener", name, "with", len(qualifiers), "qualifiers and", len(conditions), "conditions"
     def on_status(self, status):
-        if True:
-            text = status.text.lower()
+        try:
+            text = (status.text).lower()
             found = False
-            if "rt @" not in text:
-                for word in qualifiers:
+            if "RT @" not in status.text:
+                for word in self.qualifiers:
                     if word in text:
                         found = True
                         break
-            if found == True:
-                print "\033[1m%s\t%s\t%s\t%s\033[0m" % (status.text, 
-                            status.author.screen_name, 
-                            status.created_at, 
-                            status.source,)
-            else:
-                 print "%s\t%s\t%s\t%s" % (status.text, 
-                            status.author.screen_name, 
-                            status.created_at, 
-                            status.source,)
-        """except Exception, e:
+                if found == True:
+                    print "\033[94m%s\033[0m" % (self.name), "\033[1m%s\t%s\t%s\t%s\033[0m" % (status.text, 
+                                status.author.screen_name, 
+                                status.created_at, 
+                                status.source,)
+                else:
+                    print "\033[94m%s\033[0m" % (self.name), "%s\t%s\t%s\t%s" % (status.text, 
+                                status.author.screen_name, 
+                                status.created_at, 
+                                status.source,)
+        except Exception, e:
             print "Encountered exception:", e
-            pass"""
+            pass
 
     def on_error(self, status_code):
         print "Encountered error with status code:", status_code
@@ -161,12 +214,14 @@ def main():
     except:
         directory = os.getcwd() + '/'
     cfg = getConfig(directory)
-    conditions = getWords(directory, 'conditions')
+    logins = getLogins(directory, cfg['Logins'])
+    conditions = getWords(directory, cfg['Conditions'])
     print "Loaded Conditions:", conditions
-    qualifiers = set(getWords(directory, 'qualifiers'))
+    qualifiers = set(getWords(directory, cfg['Qualifiers']))
     print "Loaded Qualifiers:", qualifiers
-    login = getAuth(cfg)
+    for key,login in logins.iteritems():
+        logins[key]['auth'] = getAuth(logins[key])
     print "Ready to run...", raw_input()
-    getTweets(login,cfg)
+    getTweets(logins,cfg,conditions,qualifiers)
 
 main()
