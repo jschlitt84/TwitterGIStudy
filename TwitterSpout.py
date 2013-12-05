@@ -1,14 +1,18 @@
 import sys, os
 import json
 import tweepy
-from tweepy.streaming import StreamListener
 import time
-import multiprocessing
+import random
+#import copy
 
-expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers']
+#from tweepy.streaming import StreamListener
+from multiprocessing import Process, Queue
+
+expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers','Exclusions']
 
 
 #Hacky patch for raw json access, not granted in newest tweepy version
+#Method: http://willsimm.co.uk/saving-tweepy-output-to-mongodb/
 @classmethod
 def parse(cls, api, raw):
 	status = cls.first_parse(api, raw)
@@ -114,7 +118,6 @@ def getWords(directory, name):
         toDelete.reverse()
         for ref in toDelete:
             del data[ref]
-    print toDelete
     return data
 
     
@@ -132,56 +135,79 @@ def postTweet(api,text,image):
         api.update_status(text)
         print "posted tweet:", text
         
-        
-def getTweets(logins, cfg, conditions, qualifiers):
+
+def getStream(ear,auth,cfg,name,out_q):
+    print "Starting stream:", name
+    stream = tweepy.Stream(auth, ear, timeout=30.0)   
+    while True:
+        try:
+            stream.filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = ear.conditions)
+            break
+        except Exception, e:
+            delay = 30*random.random()
+            print "Filter failed, sleeping", int(delay), "seconds..."
+            print e
+            time.sleep(delay) 
+                        
+def getTweets(logins, cfg, conditions, qualifiers, exclusions):
     print "Setting up listeners"
     ears = {}
-    streams = {}
+    out_q = Queue()
+    processes = []
+    
     for key,login in logins.iteritems():
         try:
-            ears[key] = giListener(conditions,qualifiers,logins[key]['auth']['api'],key)
+            ears[key] = giListener(conditions,qualifiers,exclusions,login['api'],key)
             print "Logging in via", key,"credentials file"
         except:
             print "Could not login via", key, "credentials file"""
-        
-    print ears.items()
-    
+            
     for key, ear in ears.iteritems():
-        print "Starting stream:", key
-        streams[key] = tweepy.Stream(logins[key]['auth']['auth'], ear, timeout=30.0)
-    
-    print streams.items()
-    
-    while True:
-        try:
-            for key, stream in streams.iteritems():
-                stream.filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = conditions)
-            break
-        except Exception, e:
-            delay = 30
-            print "Filter failed, sleeping", delay, "seconds..."
-            print e
-            time.sleep(delay)
+        time.sleep(random.random()*4) 
+        p = Process(target = getStream, args = (ear, logins[key]['auth'], cfg, key, out_q))
+        processes.append(p)
+        p.start() 
+    merged = {}
+    """for key in ears.keys():
+        merged.update(out_q.get())
+    for p in processes:
+        p.join()"""
              
              
 class giListener(tweepy.StreamListener):
-    def __init__(self, conditions, qualifiers,api,name):
+    def __init__(self, conditions, qualifiers, exclusions, api,name):
         self.qualifiers = qualifiers
         self.conditions = conditions
         self.api = api
         self.name = name
-        print "Initiated listener", name, "with", len(qualifiers), "qualifiers and", len(conditions), "conditions"
+        self.exclusions = exclusions
+        print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
     def on_status(self, status):
         try:
             text = (status.text).lower()
-            found = False
+            foundCondition = False
+            foundQualifier = False
+            excluded =  False
             if "RT @" not in status.text:
+                for word in self.conditions:
+                    if word in text:
+                        foundCondition = True
+                        break
                 for word in self.qualifiers:
                     if word in text:
-                        found = True
+                        foundQualifier = True
                         break
-                if found == True:
+                for word in self.exclusions:
+                    if word in text:
+                        excluded = True
+                        break
+                if foundCondition == True and foundQualifier == True and excluded == False:
                     print "\033[94m%s\033[0m" % (self.name), "\033[1m%s\t%s\t%s\t%s\033[0m" % (status.text, 
+                                status.author.screen_name, 
+                                status.created_at, 
+                                status.source,)
+                elif excluded == True:
+                    print "\033[94m%s\033[0m" % (self.name), "\033[91m%s\t%s\t%s\t%s\033[0m" % (status.text, 
                                 status.author.screen_name, 
                                 status.created_at, 
                                 status.source,)
@@ -193,22 +219,22 @@ class giListener(tweepy.StreamListener):
         except Exception, e:
             print "Encountered exception:", e
             pass
+        except KeyboardInterrupt:
+            print "Got keyboard interrupt"
 
     def on_error(self, status_code):
-        print "Encountered error with status code:", status_code
-        return True # Don't kill the stream
+        print "\033[91m***Stream '%s' encountered error with status code %s***\033[0m" % (self.name,status_code)
+        return True
 
     def on_timeout(self):
         print >> sys.stderr, 'Timeout...'
-        return True # Don't kill the stream
-
-# Create a streaming API and set a timeout value of 60 seconds.
+        return True
 
 
 def main():
     try:
         temp = sys.argv[1]
-        print "Taking user parameters"
+        print "\nTaking user parameters"
         directory = '/'.join(temp.split('/')[:-1])
         configFile = temp.split('/')[-1]
         if directory == '':
@@ -217,16 +243,20 @@ def main():
         print "Taking default parameters"
         directory = os.getcwd() + '/'
         configFile = 'config'
-    print "Loading parameters from config file '%s' in directory '%s'..." % (configFile, directory)
+    print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
     cfg = getConfig(directory+configFile)
     logins = getLogins(directory, cfg['Logins'])
     conditions = getWords(directory, cfg['Conditions'])
-    print "Loaded Conditions:", conditions
+    print "\nLoaded Conditions:", conditions
     qualifiers = set(getWords(directory, cfg['Qualifiers']))
-    print "Loaded Qualifiers:", qualifiers
+    print "\nLoaded Qualifiers:", qualifiers
+    exclusions = set(getWords(directory, cfg['Exclusions']))
+    print "\nLoaded Exclusions:", exclusions
     for key,login in logins.iteritems():
-        logins[key]['auth'] = getAuth(logins[key])
-    print "Ready to run...", raw_input()
-    getTweets(logins,cfg,conditions,qualifiers)
+        temp = getAuth(logins[key])
+        logins[key]['auth'] = temp['auth']
+        logins[key]['api'] = temp['api']
+    print "\nPress [ENTER] when ready...", raw_input()
+    getTweets(logins,cfg,conditions,qualifiers,exclusions)
 
 main()
