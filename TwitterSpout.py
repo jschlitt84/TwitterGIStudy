@@ -24,7 +24,7 @@ def getConfig(directory):
     params = {}
     if directory == "null":
         directory = ''
-    fileIn = open(directory+'config')
+    fileIn = open(directory)
     content = fileIn.readlines()
     for item in content:
         if ' = ' in item:
@@ -152,19 +152,16 @@ def getTweets(logins, cfg, conditions, qualifiers):
     
     print streams.items()
     
-    for key, stream in streams.iteritems():
-        streams[key].filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = conditions)
-    
-    """while True:
+    while True:
         try:
-            #stream.filter(locations=[cfg['lat1'],cfg['lon1'],cfg['lat2'],cfg['lon2']], async=False, track = conditions)
-            stream.filter(locations=[cfg['lat1'],cfg['lon1'],cfg['lat2'],cfg['lon2']], async=False, track = [])
+            for key, stream in streams.iteritems():
+                stream.filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = conditions)
             break
         except Exception, e:
             delay = 30
             print "Filter failed, sleeping", delay, "seconds..."
             print e
-            time.sleep(delay) """
+            time.sleep(delay)
              
              
 class giListener(tweepy.StreamListener):
@@ -210,10 +207,18 @@ class giListener(tweepy.StreamListener):
 
 def main():
     try:
-        directory = sys.argv[1]
+        temp = sys.argv[1]
+        print "Taking user parameters"
+        directory = '/'.join(temp.split('/')[:-1])
+        configFile = temp.split('/')[-1]
+        if directory == '':
+            directory = os.getcwd() + '/'
     except:
+        print "Taking default parameters"
         directory = os.getcwd() + '/'
-    cfg = getConfig(directory)
+        configFile = 'config'
+    print "Loading parameters from config file '%s' in directory '%s'..." % (configFile, directory)
+    cfg = getConfig(directory+configFile)
     logins = getLogins(directory, cfg['Logins'])
     conditions = getWords(directory, cfg['Conditions'])
     print "Loaded Conditions:", conditions
