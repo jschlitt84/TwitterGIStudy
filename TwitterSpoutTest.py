@@ -4,6 +4,9 @@ import tweepy
 import time
 import random
 
+
+
+#Deprecated
 #import copy
 
 #from tweepy.streaming import StreamListener
