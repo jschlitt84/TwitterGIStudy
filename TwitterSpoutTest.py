@@ -4,6 +4,8 @@ import tweepy
 import time
 import random
 
+#import copy
+
 #from tweepy.streaming import StreamListener
 from GISpy import checkTweet
 from multiprocessing import Process, Queue

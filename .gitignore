@@ -1,2 +1,5 @@
 config
 login*
+*.pyc
+*nocopy*
+*local*
