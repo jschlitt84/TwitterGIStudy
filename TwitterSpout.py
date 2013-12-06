@@ -3,9 +3,11 @@ import json
 import tweepy
 import time
 import random
+
 #import copy
 
 #from tweepy.streaming import StreamListener
+from GiSpy import checkTweet
 from multiprocessing import Process, Queue
 
 expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers','Exclusions']
@@ -184,38 +186,22 @@ class giListener(tweepy.StreamListener):
         print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
     def on_status(self, status):
         try:
-            text = (status.text).lower()
-            foundCondition = False
-            foundQualifier = False
-            excluded =  False
-            if "RT @" not in status.text:
-                for word in self.conditions:
-                    if word in text:
-                        foundCondition = True
-                        break
-                for word in self.qualifiers:
-                    if word in text:
-                        foundQualifier = True
-                        break
-                for word in self.exclusions:
-                    if word in text:
-                        excluded = True
-                        break
-                if foundCondition == True and foundQualifier == True and excluded == False:
-                    print "\033[94m%s\033[0m" % (self.name), "\033[1m%s\t%s\t%s\t%s\033[0m" % (status.text, 
-                                status.author.screen_name, 
-                                status.created_at, 
-                                status.source,)
-                elif excluded == True:
-                    print "\033[94m%s\033[0m" % (self.name), "\033[91m%s\t%s\t%s\t%s\033[0m" % (status.text, 
-                                status.author.screen_name, 
-                                status.created_at, 
-                                status.source,)
-                else:
-                    print "\033[94m%s\033[0m" % (self.name), "%s\t%s\t%s\t%s" % (status.text, 
-                                status.author.screen_name, 
-                                status.created_at, 
-                                status.source,)
+            tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, status.text)
+            if tweetType == "accepted":
+                print "\033[94m%s\033[0m" % (self.name), "\033[1m%s\t%s\t%s\t%s\033[0m" % (status.text, 
+                            status.author.screen_name, 
+                            status.created_at, 
+                            status.source,)
+            elif tweetType == "excluded":
+                print "\033[94m%s\033[0m" % (self.name), "\033[91m%s\t%s\t%s\t%s\033[0m" % (status.text, 
+                            status.author.screen_name, 
+                            status.created_at, 
+                            status.source,)
+            elif tweetType == "partial":
+                print "\033[94m%s\033[0m" % (self.name), "%s\t%s\t%s\t%s" % (status.text, 
+                            status.author.screen_name, 
+                            status.created_at, 
+                            status.source,)
         except Exception, e:
             print "Encountered exception:", e
             pass
