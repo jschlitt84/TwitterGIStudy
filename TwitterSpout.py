@@ -7,8 +7,8 @@ import random
 from copy import deepcopy
 
 #from tweepy.streaming import StreamListener
-from GISpy import checkTweet
-from multiprocessing import Process, Queue
+from GISpy import *
+#from multiprocessing import Process, Queue
 
 expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers','Exclusions']
 
@@ -24,10 +24,22 @@ def parse(cls, api, raw):
 tweepy.models.Status.first_parse = tweepy.models.Status.parse
 tweepy.models.Status.parse = parse
 
+#List from text
+def textToList(string):
+    text = string.replace(',','')
+    while '  ' in text:
+        text = text.replace('  ',' ')
+    listed = text.split(' ')
+    return listed
 
 #Loads configuration from file config
 def getConfig(directory):
-    params = {}
+    keepKeys = {}
+    params = {'StopTime':0,'StopCount':15,'KeepRaw':True,
+                'KeepKeys':keepKeys,'FileName':'filtered',
+                'OutDir':'outPut/','KeepKeys':'all',
+                'KeepAccepted':False,'KeepPartial':False,'KeepExcluded':False}
+    
     if directory == "null":
         directory = ''
     fileIn = open(directory)
@@ -54,11 +66,9 @@ def getConfig(directory):
     print "\nLoaded params:"
     for key,item in params.iteritems():
         print '\t*', key,':', item
-        
-    logins = params['Logins'].replace(',','')
-    while '  ' in logins:
-        logins = logins.replace('  ',' ')
-    params['Logins'] = logins.split(' ')
+    
+    params['Logins'] = textToList(params['Logins'])    
+    params['KeepKeys'] = textToList(params['KeepKeys'])
     
     if params['Lat1']>params['Lat2']:
         params['Lat1'],params['Lat2'] = params['Lat2'],params['Lat1']
@@ -161,15 +171,15 @@ def postTweet(api,text,image):
 def getTweets(login, cfg, conditions, qualifiers, exclusions):
     print "\nSetting up listeners"
     name = login['name']
-    filterType = cfg['FilterType']
+    #filterType = cfg['FilterType']
     filterConditions = cfg['FilterConditions']
 
-    try:
+    if True:
         ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
         print "Logging in via", name,"credentials file"
-    except:
-        print "Could not login via", name, "credentials file"""
-        quit()
+    """except:
+        print "Could not login via", name, "credentials file"
+        quit()"""
         
     print "Starting stream:", name, '\n'
     stream = tweepy.Stream(login['auth'], ear, timeout=30.0)   
@@ -193,31 +203,77 @@ class giListener(tweepy.StreamListener):
         self.api = api
         self.name = name
         self.exclusions = exclusions
-        self.filterType = cfg['FilterType']
+        self.cfg = cfg
         self.testSpace = testSpace
+        giListener.flushTweets(self)
         print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
+    
+    def flushTweets(self):
+        self.tweetCount = 0
+        self.acceptedCount = 0
+        self.partialCount = 0
+        self.excludedCount = 0
+        self.jsonRaw = []
+        self.jsonAccepted = []
+        self.jsonPartial = []
+        self.jsonExcluded = []
+    
+    def saveTweets(self):
+        meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
+        
+        if self.cfg['KeepKeys'] != 'all':
+            cleanJson(meaningful,self.cfg['KeepKeys'])
+        
+        if self.cfg['KeepRaw']:
+            with open(self.cfg['OutDir']+'Raw_'+time.strftime("%c"), 'w') as outFile:
+                json.dump(self.jsonRaw,outFile)
+
+        with open(self.cfg['OutDir']+self.cfg['FileName']+'_'+time.strftime("%c"), 'w') as outFile:
+            json.dump(meaningful,outFile)
+ 
     
     def on_status(self, status):
         try:
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
+            #print json.loads(status.json).keys()
             if tweetType == "accepted":
                 print "\033[94m%s\033[0m" % (self.name), "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                             status.author.screen_name, 
                             status.created_at, 
                             status.source,)
+                self.tweetCount += 1
+                self.acceptedCount += 1
+                self.jsonAccepted.append(status.json)
             elif tweetType == "excluded":
                 print "\033[94m%s\033[0m" % (self.name), "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
                             status.author.screen_name, 
                             status.created_at, 
                             status.source,)
+                self.tweetCount += 1
+                self.excludedCount += 1
+                self.jsonExcluded.append(status.json)
             elif tweetType == "partial":
                 print "\033[94m%s\033[0m" % (self.name), "%s\t%s\t%s\t%s" % (text, 
                             status.author.screen_name, 
                             status.created_at, 
                             status.source,)
+                self.tweetCount += 1
+                self.partialCount += 1
+                self.jsonPartial.append(status.json)
             elif tweetType == "retweet":
                 None
+            if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
+                self.jsonRaw = json.loads(status.json)
+            if self.tweetCount >= self.cfg['StopCount']:
+                print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, and %s partial matches" % (self.cfg['StopCount'],
+                        self.acceptedCount,
+                        self.excludedCount,
+                        self.partialCount)
+                print '\tText dump complete....\n'
+                giListener.saveTweets(self)
+                giListener.flushTweets(self)        
+                
         except Exception, e:
             print "Encountered exception:", e
             pass

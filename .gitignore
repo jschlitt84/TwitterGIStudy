@@ -2,3 +2,4 @@ login*
 *.pyc
 *nocopy*
 *local*
+output/

@@ -21,3 +21,26 @@ def checkTweet(conditions, qualifiers, exclusions, text):
       return "accepted"
     else:
       return "partial"
+      
+def cleanJson(json, keep):
+    """print keep
+    userInfo = []
+    toDelete = []
+    for pos in range(len(keep)):
+        key = keep[pos]
+        if "user['" in key:
+            userInfo.append(key.replace("user['",'').replace(']',''))
+            toDelete.append(pos)
+    print "huzzah1"
+    if toDelete != []:
+        for pos in toDelete.reverse():
+            del keep[pos]
+    print "huzzah2"            
+    for row in range(len(json)):
+        json[row] = {key: json[row][key] for key in keep}
+        print "huzzah3"
+        if userInfo != []:
+            for item in userInfo:
+                json[row][item] = json[row]['user'][item]
+        print json[row]"""
+        

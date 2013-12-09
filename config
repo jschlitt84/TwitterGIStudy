@@ -9,3 +9,7 @@ FilterType = list
 Conditions = conditions
 Qualifiers = qualifiers
 Exclusions = exclusions
+StopCount = 1000
+OutDir = output/
+FileName = FilteredTweets
+KeepKeys = text, id, coordinates, created_at, geo, user['screen_name'], user['lang']
