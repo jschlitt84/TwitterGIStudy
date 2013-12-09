@@ -143,7 +143,7 @@ def postTweet(api,text,image):
         print "posted tweet:", text
         
 
-def getStream(ear,auth,cfg,name,out_q):
+"""def getStream(ear,auth,cfg,name,out_q):
     print "Starting stream:", name
     stream = tweepy.Stream(auth, ear, timeout=30.0)   
     while True:
@@ -154,7 +154,7 @@ def getStream(ear,auth,cfg,name,out_q):
             delay = 30*random.random()
             print "Filter failed, sleeping", int(delay), "seconds..."
             print e
-            time.sleep(delay) 
+            time.sleep(delay) """
                         
                         
                         
@@ -165,7 +165,7 @@ def getTweets(login, cfg, conditions, qualifiers, exclusions):
     filterConditions = cfg['FilterConditions']
 
     try:
-        ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name)
+        ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
         print "Logging in via", name,"credentials file"
     except:
         print "Could not login via", name, "credentials file"""
@@ -187,13 +187,14 @@ def getTweets(login, cfg, conditions, qualifiers, exclusions):
             time.sleep(delay) 
              
 class giListener(tweepy.StreamListener):
-    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name):
+    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
         self.qualifiers = qualifiers
         self.conditions = conditions
         self.api = api
         self.name = name
         self.exclusions = exclusions
         self.filterType = cfg['FilterType']
+        self.testSpace = testSpace
         print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
     
     def on_status(self, status):
