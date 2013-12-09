@@ -1,0 +1,11 @@
+Lat1 = 37.370521
+Lat2 = 37.046774
+Lon1 = -80.705566
+Lon2 = -79.683838
+Logins = login1, login2, login3
+FilterLocation = True
+FilterConditions = True
+FilterType = list
+Conditions = conditions
+Qualifiers = qualifiers
+Exclusions = exclusions

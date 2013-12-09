@@ -44,12 +44,7 @@ def getConfig(directory):
                 if line[1] == int(line[1]):
                     line[1] = int(line[1])
             except:
-                if isinstance(line[1], str):
-                    if line[1].lower() == 'true':
-                        line[1] = True
-                    elif line[1].lower() == 'false':
-                        line[1] = False
-            
+                None
             params[line[0]] = line[1]
     print "\nLoaded params:"
     for key,item in params.iteritems():
@@ -91,9 +86,10 @@ def getLogins(directory, files):
                 except:
                     None
                 params[line[0]] = line[1]
-        #for key,item in params.iteritems():
-        #    print '\t*', key,':', item
+        for key,item in params.iteritems():
+            print '\t*', key,':', item
         logins[fileName] = deepcopy(params)
+        
     return logins
     
 
@@ -143,58 +139,59 @@ def postTweet(api,text,image):
         print "posted tweet:", text
         
 
-"""def getStream(ear,auth,cfg,name,out_q):
+def getStream(ear,auth,cfg,name,out_q):
     print "Starting stream:", name
     stream = tweepy.Stream(auth, ear, timeout=30.0)   
     while True:
         try:
-            stream.filter(locations=[cfg['Lon1'],cfg['Lat1'],cfg['Lon2'],cfg['Lat2']])
-            break
-        except Exception, e:
-            delay = 30*random.random()
-            print "Filter failed, sleeping", int(delay), "seconds..."
-            print e
-            time.sleep(delay) """
-                        
-                        
-                        
-def getTweets(login, cfg, conditions, qualifiers, exclusions):
-    print "\nSetting up listeners"
-    name = login['name']
-    filterType = cfg['FilterType']
-    filterConditions = cfg['FilterConditions']
-
-    try:
-        ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
-        print "Logging in via", name,"credentials file"
-    except:
-        print "Could not login via", name, "credentials file"""
-        quit()
-        
-    print "Starting stream:", name, '\n'
-    stream = tweepy.Stream(login['auth'], ear, timeout=30.0)   
-    while True:
-        try:
-            if filterConditions:
-                stream.filter(locations=[cfg['Lon1'],cfg['Lat1'],cfg['Lon2'],cfg['Lat2']], track = conditions)
-            else:
-                stream.filter(locations=[cfg['Lon1'],cfg['Lat1'],cfg['Lon2'],cfg['Lat2']], track = conditions)
+            stream.filter(locations=[cfg['Lat1'],cfg['Lon1'],cfg['Lat2'],cfg['Lon2']], track = ear.conditions)
             break
         except Exception, e:
             delay = 30*random.random()
             print "Filter failed, sleeping", int(delay), "seconds..."
             print e
             time.sleep(delay) 
+                        
+                        
+                        
+def getTweets(logins, cfg, conditions, qualifiers, exclusions):
+    print "Setting up listeners"
+    ears = {}
+    out_q = Queue()
+    processes = []
+    length = len(logins)
+    conditionChunks = [conditions[i::length] for i in range(length)]
+
+    i = 0
+    
+    for key,login in logins.iteritems():
+        try:
+            ears[key] = giListener(conditionChunks[i],qualifiers,exclusions,login['api'],key)
+            i += 1
+            print "Logging in via", key,"credentials file"
+        except:
+            print "Could not login via", key, "credentials file"""
+            quit()
+            
+    for key, ear in ears.iteritems():
+        time.sleep(random.random()*4) 
+        p = Process(target = getStream, args = (ear, logins[key]['auth'], cfg, key, out_q))
+        processes.append(p)
+        p.start() 
+    merged = {}
+    """for key in ears.keys():
+        merged.update(out_q.get())
+    for p in processes:
+        p.join()"""
+             
              
 class giListener(tweepy.StreamListener):
-    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
+    def __init__(self, conditions, qualifiers, exclusions, api,name):
         self.qualifiers = qualifiers
         self.conditions = conditions
         self.api = api
         self.name = name
         self.exclusions = exclusions
-        self.filterType = cfg['FilterType']
-        self.testSpace = testSpace
         print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
     
     def on_status(self, status):
@@ -225,7 +222,7 @@ class giListener(tweepy.StreamListener):
             print "Got keyboard interrupt"
 
     def on_error(self, status_code):
-        print "\033[91m***Stream '%s' encountered error with status code %s***\033[0m" % (self.name,status_code)
+        print "***Stream '%s' encountered error with status code %s***" % (self.name,status_code)
         return True
 
     def on_timeout(self):
@@ -234,11 +231,6 @@ class giListener(tweepy.StreamListener):
 
 
 def main():
-    try: 
-        userLogin = sys.argv[2]
-        print "Login '%s' passed explicitly" % (userLogin)
-    except:
-        userLogin = 'null'
     try:
         temp = sys.argv[1]
         print "\nTaking user parameters"
@@ -250,7 +242,6 @@ def main():
         print "Taking default parameters"
         directory = os.getcwd() + '/'
         configFile = 'config'
-        
     print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
     cfg = getConfig(directory+configFile)
     logins = getLogins(directory, cfg['Logins'])
@@ -260,26 +251,11 @@ def main():
     print "\nLoaded Qualifiers:", qualifiers
     exclusions = set(getWords(directory, cfg['Exclusions']))
     print "\nLoaded Exclusions:", exclusions
-    
-    print "\nPlease choose login number:"
-    if userLogin == 'null':
-        listed = sorted(logins.keys()); i = 0
-        for key in listed:
-            print "\t%s-%s-%s" % (i,key,logins[key]['description'])
-            i += 1
-        while True:
-            try:
-                selection = int(raw_input('\n:'))
-                userLogin = listed[selection]
-                break
-            except:
-                None
- 
-    login = logins[userLogin]    
-    temp = getAuth(login)
-    login['auth'] = temp['auth']
-    login['api'] = temp['api']
-    login['name'] = userLogin
-    getTweets(login,cfg,conditions,qualifiers,exclusions)
+    for key,login in logins.iteritems():
+        temp = getAuth(logins[key])
+        logins[key]['auth'] = temp['auth']
+        logins[key]['api'] = temp['api']
+    print "\nPress [ENTER] when ready...", raw_input()
+    getTweets(logins,cfg,conditions,qualifiers,exclusions)
 
 main()
