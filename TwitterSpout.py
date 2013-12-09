@@ -4,7 +4,7 @@ import tweepy
 import time
 import random
 
-#import copy
+from copy import deepcopy
 
 #from tweepy.streaming import StreamListener
 from GISpy import checkTweet
@@ -93,7 +93,7 @@ def getLogins(directory, files):
                 params[line[0]] = line[1]
         #for key,item in params.iteritems():
         #    print '\t*', key,':', item
-        logins[fileName] = params
+        logins[fileName] = deepcopy(params)
     return logins
     
 
@@ -265,7 +265,7 @@ def main():
     if userLogin == 'null':
         listed = sorted(logins.keys()); i = 0
         for key in listed:
-            print "\t%s-%s" % (i,key)
+            print "\t%s-%s-%s" % (i,key,logins[key]['description'])
             i += 1
         while True:
             try:

@@ -4,10 +4,7 @@ import tweepy
 import time
 import random
 
-
-
-#Deprecated
-#import copy
+from copy import deepcopy
 
 #from tweepy.streaming import StreamListener
 from GISpy import checkTweet
@@ -91,7 +88,8 @@ def getLogins(directory, files):
                 params[line[0]] = line[1]
         for key,item in params.iteritems():
             print '\t*', key,':', item
-        logins[fileName] = params
+        logins[fileName] = deepcopy(params)
+        
     return logins
     
 
@@ -161,13 +159,19 @@ def getTweets(logins, cfg, conditions, qualifiers, exclusions):
     ears = {}
     out_q = Queue()
     processes = []
+    length = len(logins)
+    conditionChunks = [conditions[i::length] for i in range(length)]
+
+    i = 0
     
     for key,login in logins.iteritems():
         try:
-            ears[key] = giListener(conditions,qualifiers,exclusions,login['api'],key)
+            ears[key] = giListener(conditionChunks[i],qualifiers,exclusions,login['api'],key)
+            i += 1
             print "Logging in via", key,"credentials file"
         except:
             print "Could not login via", key, "credentials file"""
+            quit()
             
     for key, ear in ears.iteritems():
         time.sleep(random.random()*4) 
@@ -218,7 +222,7 @@ class giListener(tweepy.StreamListener):
             print "Got keyboard interrupt"
 
     def on_error(self, status_code):
-        print "\033[91m***Stream '%s' encountered error with status code %s***\033[0m" % (self.name,status_code)
+        print "***Stream '%s' encountered error with status code %s***" % (self.name,status_code)
         return True
 
     def on_timeout(self):
