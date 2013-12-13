@@ -1,6 +1,44 @@
-import copy
 import json
+import random
+from geopy.distance import great_circle
 
+
+
+#Returns true if coord is within lat/lon box, false if not
+def isInBox(cfg,pos):
+    if [cfg['Lat1'],cfg['Lat2'],pos['lat']].sorted()[1] != pos['lat']:
+        return False
+    if [cfg['Lon1'],cfg['Lon2'],pos['lon']].sorted()[1] != pos['lon']:
+        return False
+    return True
+
+
+
+# Finds center and radius in miles of circle than covers lat lon box
+def getCircle(cfg):
+    lat1 = cfg['Lat1']
+    lat2 = cfg['Lat2']
+    lon1 = cfg['Lon1']
+    lon2 = cfg['Lon2']
+    lonMid = (lon1+lon2)/2
+    latMid = (lat1+lat2)/2
+    if abs(lat1) > abs(lat2):
+        latPt = lat1
+    else:
+        latPt = lat2
+    center = [lonMid,latMid]
+    corner = [lonMid,latPt]
+    radius = great_circle(center,corner).miles
+    #fudgeFactor = 2 * random.random()
+    print "Converting search box to radius search"
+    print "\tCenter:", center
+    print "\tRadius(mi):", radius
+    
+    return {'center':center,'radius':radius}
+    
+    
+
+#Checks if tweet matches search criteria
 def checkTweet(conditions, qualifiers, exclusions, text):
   text = text.lower()
   foundCondition = False
@@ -29,7 +67,10 @@ def checkTweet(conditions, qualifiers, exclusions, text):
       return "partial"
     else:
         return "irrelevant"
+
+
       
+#Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
 def cleanJson(jsonIn, keep, types):
     userKeys = []
     toDelete = []
@@ -57,13 +98,14 @@ def cleanJson(jsonIn, keep, types):
     print
         
         
+        
 #Loads configuration from file config
 def getConfig(directory):
     keepKeys = {}
     params = {'StopTime':0,'StopCount':15,'KeepRaw':True,
                 'KeepKeys':keepKeys,'FileName':'filtered',
                 'OutDir':'outPut/','KeepKeys':'all',
-                'KeepAccepted':True,'KeepPartial':True,'KeepExcluded':True}
+                'KeepAccepted':True,'KeepPartial':True,'KeepExcluded':True, 'method':'stream'}
     
     if directory == "null":
         directory = ''
@@ -114,6 +156,7 @@ def getConfig(directory):
     while params['KeepKeys'].count('user') > 1:
         del params['KeepKeys'][params['KeepKeys'].index('user')]
     return params
+    
     
     
 #List from text
