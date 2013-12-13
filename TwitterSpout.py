@@ -1,14 +1,15 @@
 import sys, os
 import json
 import tweepy
+import datetime
 import time
 import random
 
 from copy import deepcopy
 
 #from tweepy.streaming import StreamListener
-from GISpy import checkTweet
-from multiprocessing import Process, Queue
+from GISpy import *
+#from multiprocessing import Process, Queue
 
 expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers','Exclusions']
 
@@ -24,48 +25,6 @@ def parse(cls, api, raw):
 tweepy.models.Status.first_parse = tweepy.models.Status.parse
 tweepy.models.Status.parse = parse
 
-
-#Loads configuration from file config
-def getConfig(directory):
-    params = {}
-    if directory == "null":
-        directory = ''
-    fileIn = open(directory)
-    content = fileIn.readlines()
-    for item in content:
-        if ' = ' in item:
-            while '  ' in item:
-                item = item.replace('  ',' ')
-            while '\n' in item:
-                item = item.replace('\n','')
-            line = item.split(' = ')
-            try:
-                line[1] = float(line[1])
-                if line[1] == int(line[1]):
-                    line[1] = int(line[1])
-            except:
-                if isinstance(line[1], str):
-                    if line[1].lower() == 'true':
-                        line[1] = True
-                    elif line[1].lower() == 'false':
-                        line[1] = False
-            
-            params[line[0]] = line[1]
-    print "\nLoaded params:"
-    for key,item in params.iteritems():
-        print '\t*', key,':', item
-        
-    logins = params['Logins'].replace(',','')
-    while '  ' in logins:
-        logins = logins.replace('  ',' ')
-    params['Logins'] = logins.split(' ')
-    
-    if params['Lat1']>params['Lat2']:
-        params['Lat1'],params['Lat2'] = params['Lat2'],params['Lat1']
-    if params['Lon1']>params['Lon2']:
-        params['Lon1'],params['Lon2'] = params['Lon2'],params['Lon1']
-        
-    return params
 
 def getLogins(directory, files):
     logins = {}
@@ -161,24 +120,23 @@ def postTweet(api,text,image):
 def getTweets(login, cfg, conditions, qualifiers, exclusions):
     print "\nSetting up listeners"
     name = login['name']
-    filterType = cfg['FilterType']
-    filterConditions = cfg['FilterConditions']
+    filterType = cfg['FilterType'].lower()
 
-    try:
+    if True:
         ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
         print "Logging in via", name,"credentials file"
-    except:
-        print "Could not login via", name, "credentials file"""
-        quit()
+    """except:
+        print "Could not login via", name, "credentials file"
+        quit()"""
         
     print "Starting stream:", name, '\n'
     stream = tweepy.Stream(login['auth'], ear, timeout=30.0)   
     while True:
         try:
-            if filterConditions:
-                stream.filter(locations=[cfg['Lon1'],cfg['Lat1'],cfg['Lon2'],cfg['Lat2']], track = conditions)
-            else:
-                stream.filter(locations=[cfg['Lon1'],cfg['Lat1'],cfg['Lon2'],cfg['Lat2']], track = conditions)
+            if filterType == "conditions":
+                stream.filter(track = conditions)
+            elif filterType == "location":
+                stream.filter(locations=[cfg['Lon1'],cfg['Lat1'],cfg['Lon2'],cfg['Lat2']])
             break
         except Exception, e:
             delay = 30*random.random()
@@ -193,31 +151,92 @@ class giListener(tweepy.StreamListener):
         self.api = api
         self.name = name
         self.exclusions = exclusions
-        self.filterType = cfg['FilterType']
+        self.cfg = cfg
         self.testSpace = testSpace
+        giListener.flushTweets(self)
         print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
+    
+    def flushTweets(self):
+        self.tweetCount = 0
+        self.acceptedCount = 0
+        self.partialCount = 0
+        self.excludedCount = 0
+        self.irrelevantCount = 0
+        self.jsonRaw = []
+        self.jsonAccepted = []
+        self.jsonPartial = []
+        self.jsonExcluded = []
+        self.tweetTypes = []
+        self.startTime = datetime.datetime.now().strftime("%A %m.%d.%y %H:%M:%S")
+        self.startDay = datetime.date.today().strftime("%A")
+
+    
+    def saveTweets(self):
+        print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, %s partial matches, and %s irrelevant" % (self.cfg['StopCount'],
+                        self.acceptedCount,
+                        self.excludedCount,
+                        self.partialCount,
+                        self.irrelevantCount)
+        print '\tJson text dump complete....\n'
+                
+        meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
+        
+        if self.cfg['KeepKeys'] != 'all':
+            cleanJson(meaningful,self.cfg['KeepKeys'],self.tweetTypes)
+            
+        #timeStamp = datetime.date.today().strftime("%A")
+        timeStamp = self.startTime
+        
+        if self.cfg['KeepRaw']:
+            with open(self.cfg['OutDir']+'Raw_'+timeStamp, 'w') as outFile:
+                json.dump(self.jsonRaw,outFile)
+
+        with open(self.cfg['OutDir']+self.cfg['FileName']+'_'+timeStamp, 'w') as outFile:
+            json.dump(meaningful,outFile)
+        giListener.flushTweets(self) 
+ 
     
     def on_status(self, status):
         try:
+            if self.startDay != datetime.date.today().strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
+                giListener.saveTweets(self)
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
+            #print json.loads(status.json).keys()
+            percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
+            loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,percentFilled)
             if tweetType == "accepted":
-                print "\033[94m%s\033[0m" % (self.name), "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
+                print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                             status.author.screen_name, 
                             status.created_at, 
                             status.source,)
+                self.tweetCount += self.cfg['KeepAccepted']
+                self.acceptedCount += 1
+                self.jsonAccepted.append(status.json)
             elif tweetType == "excluded":
-                print "\033[94m%s\033[0m" % (self.name), "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
+                print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
                             status.author.screen_name, 
                             status.created_at, 
                             status.source,)
+                self.tweetCount += self.cfg['KeepExcluded']
+                self.excludedCount += 1
+                self.jsonExcluded.append(status.json)
             elif tweetType == "partial":
-                print "\033[94m%s\033[0m" % (self.name), "%s\t%s\t%s\t%s" % (text, 
+                print loginInfo, "%s\t%s\t%s\t%s" % (text, 
                             status.author.screen_name, 
                             status.created_at, 
                             status.source,)
+                self.tweetCount += self.cfg['KeepPartial']
+                self.partialCount += 1
+                self.jsonPartial.append(status.json)
             elif tweetType == "retweet":
                 None
+            else:
+                self.irrelevantCount += 1
+            if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
+                self.jsonRaw.append(status.json)
+                self.tweetTypes.append(tweetType)               
+                
         except Exception, e:
             print "Encountered exception:", e
             pass
@@ -265,7 +284,7 @@ def main():
     if userLogin == 'null':
         listed = sorted(logins.keys()); i = 0
         for key in listed:
-            print "\t%s-%s-%s" % (i,key,logins[key]['description'])
+            print "\t%s - %s - %s" % (i,key,logins[key]['description'])
             i += 1
         while True:
             try:

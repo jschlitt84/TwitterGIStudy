@@ -2,3 +2,6 @@ login*
 *.pyc
 *nocopy*
 *local*
+output/
+
+configTest
