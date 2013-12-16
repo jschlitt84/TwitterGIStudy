@@ -6,16 +6,22 @@ from geopy.distance import great_circle
 
 #Returns true if coord is within lat/lon box, false if not
 def isInBox(cfg,pos):
-    if [cfg['Lat1'],cfg['Lat2'],pos['lat']].sorted()[1] != pos['lat']:
+    try:
+        pos = pos['coordinates']
+    except:
+        None
+    try:
+        if sorted([cfg['Lat1'],cfg['Lat2'],pos[1]])[1] != pos[1]:
+            return False
+        if sorted([cfg['Lon1'],cfg['Lon2'],pos[0]])[1] != pos[0]:
+            return False
+        return True
+    except:
         return False
-    if [cfg['Lon1'],cfg['Lon2'],pos['lon']].sorted()[1] != pos['lon']:
-        return False
-    return True
-
 
 
 # Finds center and radius in miles of circle than covers lat lon box
-def getCircle(cfg):
+def getGeo(cfg):
     lat1 = cfg['Lat1']
     lat2 = cfg['Lat2']
     lon1 = cfg['Lon1']
@@ -27,14 +33,12 @@ def getCircle(cfg):
     else:
         latPt = lat2
     center = [lonMid,latMid]
-    corner = [lonMid,latPt]
-    radius = great_circle(center,corner).miles
-    #fudgeFactor = 2 * random.random()
+    corner = [lon1,latPt]
+    radius = int(great_circle(center,corner).miles + 1)
     print "Converting search box to radius search"
     print "\tCenter:", center
     print "\tRadius(mi):", radius
-    
-    return {'center':center,'radius':radius}
+    return [center[1],center[0],radius]
     
     
 

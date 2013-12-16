@@ -14,19 +14,21 @@ from giListener import *
 expected = ['Lat1','Lat2','Lon1','Lon2','Logins','Conditions','Qualifiers','Exclusions']
 
 
-#Hacky patch for raw json access, not granted in newest tweepy version
-#Method: http://willsimm.co.uk/saving-tweepy-output-to-mongodb/
 @classmethod
 def parse(cls, api, raw):
-	status = cls.first_parse(api, raw)
-	setattr(status, 'json', json.dumps(raw))
-	return status
+    """#Hacky patch for raw json access, not granted in newest tweepy version
+        #Method: http://willsimm.co.uk/saving-tweepy-output-to-mongodb/"""
+    status = cls.first_parse(api, raw)
+    setattr(status, 'json', json.dumps(raw))
+    return status
 
 tweepy.models.Status.first_parse = tweepy.models.Status.parse
 tweepy.models.Status.parse = parse
 
 
+
 def getLogins(directory, files):
+    """gets login parameters from list & directory passed on by config file"""
     logins = {}
     params = {}
     
@@ -57,14 +59,15 @@ def getLogins(directory, files):
     
 
    
-#Filters out non alphanumeric characters, leaves hashtags   
 def stripWords(text):
+    """Filters out non alphanumeric characters, leaves hashtags"""
     listed = ''.join((c if (c.isalnum()) else ' ') for c in text).split()
     return listed
     
     
-#Loads & cleans phrases from text file  
+
 def getWords(directory, name):
+    """Loads & cleans phrases from text file"""
     with open (directory+name, 'r') as fileIn:
         text=fileIn.read().lower()
         while '  ' in text:
@@ -87,8 +90,9 @@ def getWords(directory, name):
     return data
 
     
-#Return authorization object
+
 def getAuth(login):
+    """Return authorization object"""
     auth1 = tweepy.auth.OAuthHandler(login['consumerKey'],login['consumerSecret'])
     auth1.set_access_token(login['accessToken'],login['accessTokenSecret'])
     api = tweepy.API(auth1)
@@ -96,17 +100,16 @@ def getAuth(login):
 
 
 
-#Posts a tweet
 def postTweet(api,text,image):
+    """Posts a tweet"""
     if image != None and image != 'null':
         api.update_status(text)
         print "posted tweet:", text
         
 
-                                
-
-#selects method of tweet aquisition                        
+                                                      
 def getTweets(login, cfg, conditions, qualifiers, exclusions):
+    """selects method of tweet aquisition"""
     if cfg['Method'].lower() == 'stream':
         getViaStream(login, cfg, conditions, qualifiers, exclusions)
     elif cfg['Method'].lower() == 'search':
@@ -115,16 +118,21 @@ def getTweets(login, cfg, conditions, qualifiers, exclusions):
         
         
         
-#acquires tweets via search method
+
 def getViaSearch(login, cfg, conditions, qualifiers, exclusions):
+    """acquires tweets via search method"""
     print "\nSetting up searc(es)"
-    name = login['name']
+    name = login['name']    
     filterType = cfg['FilterType'].lower()
-    search = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
+    seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
+    print "HUZZAH1"
+    seeker.run()
+    print "HUZZAH2"
         
         
-#acquires tweets via geo stream                
+               
 def getViaStream(login, cfg, conditions, qualifiers, exclusions):
+    """acquires tweets via geo stream"""
     print "\nSetting up listener(s)"
     name = login['name']
     filterType = cfg['FilterType'].lower()

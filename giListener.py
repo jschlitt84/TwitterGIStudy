@@ -1,23 +1,29 @@
 import tweepy
-import datetime
+import datetime, time
 import json
 import os
+
+
 from GISpy import *
+
+
 
 class giSeeker():
     def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
+        self.delay = 30
         self.qualifiers = qualifiers
         self.conditions = conditions
         self.api = api
         self.name = name
         self.exclusions = exclusions
         self.cfg = cfg
+        self.searchDelay = 300
         self.testSpace = testSpace
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
-        area = getCircle(cfg)
-        self.center = area['center']
-        self.radius = area['radius']
+        self.geo = str(getGeo(cfg)).replace(' ','')[1:-1]+'mi'
+        self.center = [self.geo[1],self.geo[0]]
+        self.radius = self.geo[2]
         print "\nInitiated seeker '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
         
         self.pathOut = self.cfg['OutDir']+'search/'
@@ -40,9 +46,10 @@ class giSeeker():
         self.startTime = datetime.datetime.now().strftime("%A_%m-%d-%y_%H-%M-%S")
         self.startDay = datetime.date.today().strftime("%A")
 
-#open newest file via http://ubuntuforums.org/showthread.php?t=1526010 method 
-    
+
+
     def getLastID(self):
+        """Open newest file, finds last ID of tweet recorded"""
         print "\nChecking for last tweet ID loaded..."
         try:
             filelist = os.listdir(self.pathOut)
@@ -57,22 +64,104 @@ class giSeeker():
             self.lastTweet = 0
         print "\tLast tweet:", self.lastTweet
     
+    
+    
     def makeQueries(self):
+        """Formats query list and splits into < 1k character segments"""
         self.queries = []
         text = '"'+self.conditions[0]+'"'
         for item in self.conditions[1:]:
             entry = ' OR "' + item + '"'
-            if len(text + entry) >= 1000:
+            if len(text + entry) >= 250:
                 self.queries.append(text)
                 text = '"'+item+'"'
             else:
                 text += entry
         self.queries.append(text)
         for item in self.queries:
-            print "QUERY LENGTH: %s\tCONTENTS:\n%s\n" % (len(item), item)
+            print "Query Length: %s\tContents:\n%s\n" % (len(item), item)
                 
-    def getTweets(self):
-        None 
+    def run(self):
+        print "\nPreparing to run..."
+        print "GEO:", self.geo
+        while True:
+            collected = []
+            for query in self.queries:
+                
+                #Issue of stream pagination currently unresolved
+                #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
+                
+                #Method 1: Unlimited backstream, may have overlap or rate limiting issues
+                """for tweet in tweepy.Cursor(self.api.search,q=query,
+                    geocode= self.geo,
+                    since_id= str(0),
+                    result_type="recent").items():
+                    
+                    print tweet.text
+                    collected.append(tweet)
+                    
+                for item in collected:
+                    print item.text, item.coordinates, item.geo"""
+
+                #Method 2: Since id stream, may miss if keyword set yields over 100 new results
+                collected += self.api.search(q = query, 
+                                        since_id = self.lastTweet,  
+                                        geocode = self.geo,
+                                        result_type="recent",
+                                        count = 100)
+            
+
+                                
+            idList = set()
+            
+            for status in collected:
+                print "Status", status.id, isInBox(self.cfg,status.coordinates)
+                    
+            for status in collected:
+                idList.add(int(status.id))
+                #if self.startDay != datetime.date.today().strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
+                #    giListener.saveTweets(self)
+                text = status.text.replace('\n',' ')
+                tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
+                #print json.loads(status.json).keys()
+                #percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
+                loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,"TEMP")
+                print status.geo, status.coordinates
+                if tweetType == "accepted":
+                    print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
+                                status.author.screen_name, 
+                                status.created_at, 
+                                status.source,)
+                    #self.tweetCount += self.cfg['KeepAccepted']
+                    #self.acceptedCount += 1
+                    #self.jsonAccepted.append(status.json)
+                elif tweetType == "excluded":
+                    print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
+                                status.author.screen_name, 
+                                status.created_at, 
+                                status.source,)
+                    #self.tweetCount += self.cfg['KeepExcluded']
+                    #self.excludedCount += 1
+                    #self.jsonExcluded.append(status.json)
+                elif tweetType == "partial":
+                    print loginInfo, "%s\t%s\t%s\t%s" % (text, 
+                                status.author.screen_name, 
+                                status.created_at, 
+                                status.source,)
+                    #self.tweetCount += self.cfg['KeepPartial']
+                    #self.partialCount += 1
+                    #self.jsonPartial.append(status.json)
+                elif tweetType == "retweet":
+                    None
+                else:
+                    self.irrelevantCount += 1
+                #if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
+                    #self.jsonRaw.append(status.json)
+                    #self.tweetTypes.append(tweetType) 
+            
+            self.lastTweet = max(max(list(idList)), self.lastTweet)
+            time.sleep(self.searchDelay)
+            
     
 class giListener(tweepy.StreamListener):
     def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
