@@ -114,8 +114,11 @@ class giSeeker():
                                 
             idList = set()
             
+            inBox = 0
             for status in collected:
-                print "Status", status.id, isInBox(self.cfg,status.coordinates)
+                isIn = isInBox(self.cfg,status.coordinates)
+                inBox += isIn
+                print "Status", status.id, isIn
                     
             for status in collected:
                 idList.add(int(status.id))
@@ -126,7 +129,6 @@ class giSeeker():
                 #print json.loads(status.json).keys()
                 #percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
                 loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,"TEMP")
-                print status.geo, status.coordinates
                 if tweetType == "accepted":
                     print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                                 status.author.screen_name, 
@@ -159,7 +161,10 @@ class giSeeker():
                     #self.jsonRaw.append(status.json)
                     #self.tweetTypes.append(tweetType) 
             
-            self.lastTweet = max(max(list(idList)), self.lastTweet)
+            if len(idList) != 0:
+                self.lastTweet = max(max(list(idList)), self.lastTweet)
+
+            print "\n%s tweets acquired with %s geolocated, will sleep %s seconds until next search" % (len(idList),inBox,self.searchDelay)
             time.sleep(self.searchDelay)
             
     

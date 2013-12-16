@@ -125,9 +125,7 @@ def getViaSearch(login, cfg, conditions, qualifiers, exclusions):
     name = login['name']    
     filterType = cfg['FilterType'].lower()
     seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
-    print "HUZZAH1"
     seeker.run()
-    print "HUZZAH2"
         
         
                
