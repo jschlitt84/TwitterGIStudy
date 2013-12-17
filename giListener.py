@@ -211,15 +211,16 @@ class giSeeker():
                     self.jsonRaw.append(status.json)
                     self.tweetTypes.append(tweetType) 
             
-            if len(idList) != 0:
-                self.lastTweet = max(max(list(idList)), self.lastTweet)
+            hasResults = len(idList) != 0
             
-            if len(idList) != 0:
+            if hasResults:
+                self.lastTweet = max(max(list(idList)), self.lastTweet)
                 tweetsPerHour = float(len(idList))/((collected[-1].created_at-collected[0].created_at).seconds/3600)
             else:
                 tweetsPerHour = 0
             print "\n%s tweets acquired with %s geolocated and %s mappable hits, will sleep %s seconds until next search" % (len(idList),inBox, mappable,self.searchDelay)
-            print "\tFirst tweet: %s\tLast tweet: %s\t\tTweets Per Hour: %s" % (collected[0].created_at, collected[-1].created_at, tweetsPerHour)
+            if hasResults:
+                print "\tFirst tweet: %s\tLast tweet: %s\t\tTweets Per Hour: %s" % (collected[0].created_at, collected[-1].created_at, tweetsPerHour)
             time.sleep(self.searchDelay)
             
     
