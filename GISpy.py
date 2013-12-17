@@ -1,23 +1,89 @@
 import json
 import random
+import time
+import os
 from geopy.distance import great_circle
 
 
+
+def getWords(directory, name):
+    """Loads & cleans phrases from text file"""
+    with open (directory+name, 'r') as fileIn:
+        text=fileIn.read().lower()
+        while '  ' in text:
+            text = text.replace('  ',' ')
+    data = text.split('\n')
+    toDelete = []
+    for pos in range(len(data)):
+        entry = data[pos]
+        while entry.startswith(' '):
+            entry = entry[1:]
+        while entry.endswith(' '):
+            entry = entry[:-1]
+        if entry == '':
+            toDelete.append(pos)
+        data[pos] = entry
+    if len(toDelete) != 0:
+        toDelete.reverse()
+        for ref in toDelete:
+            del data[ref]
+    return data
+
+
+
+#Pulls word lists from local directory
+def updateWordBanks(directory, cfg): 
+    try:
+        if cfg.has_key('UsageMode'):
+            if cfg['UsageMode'] == 'gdoc':
+                None
+        else:
+            print "Attempting file update of local directory"
+            os.system('git pull')
+            print "Git pull successful"
+    except:
+        print "Unable to update list files via git"
+    
+    print "Preparing to load updated list files\n"
+    conditions = getWords(directory, cfg['Conditions'])
+    print "\nLoaded Conditions:", conditions
+    qualifiers = set(getWords(directory, cfg['Qualifiers']))
+    print "\nLoaded Qualifiers:", qualifiers
+    exclusions = set(getWords(directory, cfg['Exclusions']))
+    print "\nLoaded Exclusions:", exclusions
+    
+    return {'conditions':conditions,"qualifiers": qualifiers, 'exclusions': exclusions}
+    
+
+#Trys to open a file, if unable, waits five seconds and tries again
+def openWhenReady(directory, mode):
+    attempts = 0
+    while True:
+        try:
+            fileOut = open(directory,mode)
+            break
+        except:
+            time.sleep(5)
+            attempts += 1
+            if attempts == 1000:
+                print "Error: Unable to open", directory, "for 5000 seconds, quiting now"
+                quit()
+    return fileOut
 
 #Returns true if coord is within lat/lon box, false if not
 def isInBox(cfg,pos):
     try:
         pos = pos['coordinates']
     except:
-        None
+        return {'inBox':False,'text':'NoCoords'}
     try:
         if sorted([cfg['Lat1'],cfg['Lat2'],pos[1]])[1] != pos[1]:
-            return False
+            return {'inBox':False,'text':'HasCoords'}
         if sorted([cfg['Lon1'],cfg['Lon2'],pos[0]])[1] != pos[0]:
-            return False
-        return True
+            return {'inBox':False,'text':'HasCoords'}
+        return {'inBox':True,'text':'InBox'}
     except:
-        return False
+        return {'inBox':False,'text':'Error'}
 
 
 # Finds center and radius in miles of circle than covers lat lon box
@@ -98,7 +164,7 @@ def cleanJson(jsonIn, keep, types):
         jsonIn[row] = tempJson
         jsonIn[row]['tweetType'] = types[row]
     for item in jsonIn:
-        print "Filtered Out", item
+        print "STORED:", item
     print
         
         

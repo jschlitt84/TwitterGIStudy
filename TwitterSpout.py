@@ -64,32 +64,6 @@ def stripWords(text):
     listed = ''.join((c if (c.isalnum()) else ' ') for c in text).split()
     return listed
     
-    
-
-def getWords(directory, name):
-    """Loads & cleans phrases from text file"""
-    with open (directory+name, 'r') as fileIn:
-        text=fileIn.read().lower()
-        while '  ' in text:
-            text = text.replace('  ',' ')
-    data = text.split('\n')
-    toDelete = []
-    for pos in range(len(data)):
-        entry = data[pos]
-        while entry.startswith(' '):
-            entry = entry[1:]
-        while entry.endswith(' '):
-            entry = entry[:-1]
-        if entry == '':
-            toDelete.append(pos)
-        data[pos] = entry
-    if len(toDelete) != 0:
-        toDelete.reverse()
-        for ref in toDelete:
-            del data[ref]
-    return data
-
-    
 
 def getAuth(login):
     """Return authorization object"""
@@ -175,13 +149,10 @@ def main():
         
     print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
     cfg = getConfig(directory+configFile)
+    cfg['directory'] = directory
     logins = getLogins(directory, cfg['Logins'])
-    conditions = getWords(directory, cfg['Conditions'])
-    print "\nLoaded Conditions:", conditions
-    qualifiers = set(getWords(directory, cfg['Qualifiers']))
-    print "\nLoaded Qualifiers:", qualifiers
-    exclusions = set(getWords(directory, cfg['Exclusions']))
-    print "\nLoaded Exclusions:", exclusions
+    
+    lists = updateWordBanks(directory, cfg) 
     
     print "\nPlease choose login number:"
     if userLogin == 'null':
@@ -202,6 +173,6 @@ def main():
     login['auth'] = temp['auth']
     login['api'] = temp['api']
     login['name'] = userLogin
-    getTweets(login,cfg,conditions,qualifiers,exclusions)
+    getTweets(login,cfg,lists['conditions'],lists['qualifiers'],lists['exclusions'])
 
 main()
