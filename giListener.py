@@ -240,7 +240,7 @@ class giSeeker():
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
                 if len(idList) > 1:
-                    tweetsPerHour = float(len(idList))/((collected[-1].created_at-collected[0].created_at).seconds/3600)
+                    tweetsPerHour = float(len(idList)*3600)/((collected[-1].created_at-collected[0].created_at).seconds)
                 else:
                     tweetsPerHour = "NA"
             else:
