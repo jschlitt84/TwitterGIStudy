@@ -24,40 +24,6 @@ def parse(cls, api, raw):
 
 tweepy.models.Status.first_parse = tweepy.models.Status.parse
 tweepy.models.Status.parse = parse
-
-
-
-def getLogins(directory, files):
-    """gets login parameters from list & directory passed on by config file"""
-    logins = {}
-    params = {}
-    
-    for fileName in files:
-        if directory == "null":
-            directory = ''
-        print "\nLoading login file:", directory + fileName
-        fileIn = open(directory+fileName)
-        content = fileIn.readlines()
-        for item in content:
-            if ' = ' in item:
-                while '  ' in item:
-                    item = item.replace('  ',' ')
-                while '\n' in item:
-                    item = item.replace('\n','')
-                line = item.split(' = ')
-                try:
-                    line[1] = float(line[1])
-                    if line[1] == int(line[1]):
-                        line[1] = int(line[1])
-                except:
-                    None
-                params[line[0]] = line[1]
-        #for key,item in params.iteritems():
-        #    print '\t*', key,':', item
-        logins[fileName] = deepcopy(params)
-    return logins
-    
-
    
 def stripWords(text):
     """Filters out non alphanumeric characters, leaves hashtags"""

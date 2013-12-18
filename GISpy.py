@@ -2,9 +2,41 @@ import json
 import random
 import time
 import os
+
+from copy import deepcopy
 from geopy.distance import great_circle
 
 
+def getLogins(directory, files):
+    """gets login parameters from list & directory passed on by config file"""
+    logins = {}
+    
+    for fileName in files:
+        params = {'description':'null'}
+        if directory == "null":
+            directory = ''
+        print "\nLoading login file:", directory + fileName
+        fileIn = open(directory+fileName)
+        content = fileIn.readlines()
+        for item in content:
+            if ' = ' in item:
+                while '  ' in item:
+                    item = item.replace('  ',' ')
+                while '\n' in item:
+                    item = item.replace('\n','')
+                line = item.split(' = ')
+                try:
+                    line[1] = float(line[1])
+                    if line[1] == int(line[1]):
+                        line[1] = int(line[1])
+                except:
+                    None
+                params[line[0]] = line[1]
+        #for key,item in params.iteritems():
+        #    print '\t*', key,':', item
+        logins[fileName] = deepcopy(params)
+    return logins
+    
 
 def getWords(directory, name):
     """Loads & cleans phrases from text file"""
