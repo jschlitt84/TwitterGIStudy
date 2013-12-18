@@ -160,6 +160,8 @@ class giSeeker():
                
             idList = set()            
             inBox = mappable = 0
+            
+            collected = list(set(collected))
 
             collected = sorted(collected, key=lambda k: k.id)                         
             for status in collected:
@@ -215,7 +217,10 @@ class giSeeker():
             
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
-                tweetsPerHour = float(len(idList))/((collected[-1].created_at-collected[0].created_at).seconds/3600)
+                if len(idList) > 1:
+                    tweetsPerHour = float(len(idList))/((collected[-1].created_at-collected[0].created_at).seconds/3600)
+                else:
+                    tweetsPerHour = "NA"
             else:
                 tweetsPerHour = 0
             print "\n%s tweets acquired with %s geolocated and %s mappable hits, will sleep %s seconds until next search" % (len(idList),inBox, mappable,self.searchDelay)
