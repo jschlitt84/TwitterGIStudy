@@ -50,7 +50,7 @@ def updateWordBanks(directory, cfg):
     qualifiers = set(getWords(directory, cfg['Qualifiers']))
     print "\nLoaded Qualifiers:", qualifiers
     exclusions = set(getWords(directory, cfg['Exclusions']))
-    print "\nLoaded Exclusions:", exclusions
+    print "\nLoaded Exclusions:", exclusions, '\n'
     
     return {'conditions':conditions,"qualifiers": qualifiers, 'exclusions': exclusions}
     
@@ -163,8 +163,8 @@ def cleanJson(jsonIn, keep, types):
                     tempJson[item] = userData[item]
         jsonIn[row] = tempJson
         jsonIn[row]['tweetType'] = types[row]
-    for item in jsonIn:
-        print "STORED:", item
+    #for item in jsonIn:
+        #print "STORED:", item
     print
         
         

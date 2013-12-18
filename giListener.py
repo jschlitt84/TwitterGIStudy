@@ -8,6 +8,9 @@ from GISpy import *
 
 
 
+
+
+
 class giSeeker():
     def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
         self.delay = 30
@@ -19,6 +22,7 @@ class giSeeker():
         self.cfg = cfg
         self.searchDelay = 300
         self.testSpace = testSpace
+        self.runDay = datetime.datetime.today().strftime("%A %d")
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
         self.geo = str(getGeo(cfg)).replace(' ','')[1:-1]+'mi'
@@ -38,6 +42,7 @@ class giSeeker():
     
     
     def closeDay(self):
+        print "Closing tweet collection for", self.startDay, '\n'
         fileOut = openWhenReady(self.pathOut + 'checkbits','w')
         directory = self.cfg['directory']
         fileOut = open(self.pathOut + 'checkbits','w')
@@ -47,10 +52,13 @@ class giSeeker():
         fileOut.write('ExclusionsVersion = ' + time.ctime(os.stat(directory + self.cfg['Exclusions']).st_mtime))
         fileOut.close()
         
-        lists = updateWordBanks(directory, self.cfg)
-        self.conditions = lists['conditions']
-        self.qualifiers = lists['qualifiers']
-        self.exclusions = lists['exclusions']
+        if self.runDay != datetime.date.today().strftime("%A %d"):
+            lists = updateWordBanks(directory, self.cfg)
+            self.conditions = lists['conditions']
+            self.qualifiers = lists['qualifiers']
+            self.exclusions = lists['exclusions']
+            self.runDay = datetime.date.today().strftime("%A %d")
+            
         
         
             
@@ -65,20 +73,17 @@ class giSeeker():
         self.jsonPartial = []
         self.jsonExcluded = []
         self.tweetTypes = []
-        self.startTime = datetime.datetime.now().strftime("%A_%m-%d-%y_%H-%M-%S")
-        self.startDay = datetime.date.today().strftime("%A")
         
     
     def saveTweets(self):
-        print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, %s partial matches, and %s irrelevant" % (self.cfg['StopCount'],
+        meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
+        
+        print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, %s partial matches, and %s irrelevant" % (len(meaningful),
                         self.acceptedCount,
                         self.excludedCount,
                         self.partialCount,
-                        self.irrelevantCount)
-        print '\tJson text dump complete....\n'
-                
-        meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
-        
+                        self.irrelevantCount)        
+       
         if self.cfg['KeepKeys'] != 'all':
             cleanJson(meaningful,self.cfg['KeepKeys'],self.tweetTypes)
             
@@ -86,11 +91,16 @@ class giSeeker():
         timeStamp = self.startTime
         
         if self.cfg['KeepRaw']:
-            with open(self.pathOut+'Raw_'+timeStamp, 'w') as outFile:
+            with open(self.pathOut+'Raw_'+timeStamp+'.json', 'w') as outFile:
                 json.dump(self.jsonRaw,outFile)
+            outFile.close()
 
-        with open(self.pathOut+self.cfg['FileName']+'_'+timeStamp, 'w') as outFile:
+        with open(self.pathOut+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
             json.dump(meaningful,outFile)
+        outFile.close()
+        
+        print '\tJson text dump complete, buffering....'    
+        time.sleep(1)
         
         giSeeker.flushTweets(self)
 
@@ -100,13 +110,18 @@ class giSeeker():
         """Open newest file, finds last ID of tweet recorded"""
         print "\nChecking for last tweet ID loaded..."
         try:
-            filelist = os.listdir(self.pathOut)
-            filelist = filter(lambda x: not os.path.isdir(self.pathOut+x), filelist)
-            newest = self.pathOut + max(filelist, key=lambda x: os.stat(self.pathOut+x).st_mtime)
+            fileList = os.listdir(self.pathOut)
+            fileList = [i for i in fileList if ".json" in i.lower()]
+            fileList = filter(lambda i: not os.path.isdir(self.pathOut+i), fileList)
+            
+            newest = self.pathOut + max(fileList, key=lambda i: os.stat(self.pathOut+i).st_mtime)
             print "\tNewest File:", newest
             inFile = open(newest)
             listed = json.load(inFile)
-            self.lastTweet = listed[-1]['id']
+            ids = set()
+            for tweet in listed:
+                ids.add(tweet['id'])
+            self.lastTweet = max(ids)
         except:
             print "Unable to find last tweet batch, using ID 0"
             self.lastTweet = 0
@@ -131,7 +146,7 @@ class giSeeker():
                 
     def run(self):
         print "\nPreparing to run..."
-        print "GEO:", self.geo
+        print "Geographic Selection:", self.geo, '\n\n'
         while True:
             collected = []
             for query in self.queries:
@@ -162,14 +177,22 @@ class giSeeker():
             inBox = mappable = 0
             
             collected = list(set(collected))
-
-            collected = sorted(collected, key=lambda k: k.id)                         
+            hasResults = len(collected) != 0
+            collected = sorted(collected, key=lambda k: k.id)  
+            
+            if hasResults:
+                self.startDay = collected[0].created_at.strftime("%A %d")
+                self.startTime = collected[0].created_at.strftime("%A_%m-%d-%y_%H-%M-%S")
+                                   
             for status in collected:
                 idList.add(int(status.id))
-                if self.startDay != datetime.date.today().strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
+                if self.startDay != status.created_at.strftime("%A %d") or self.tweetCount >= self.cfg['StopCount']:
                     giSeeker.saveTweets(self)
-                    if self.startDay != datetime.date.today().strftime("%A"):
+                    if self.startDay != status.created_at.strftime("%A %d"):
                         giSeeker.closeDay(self)
+                        self.startDay = status.created_at.strftime("%A %d")
+                        self.startTime = status.created_at.strftime("%A_%m-%d-%y_%H-%M-%S")
+                    
                 text = status.text.replace('\n',' ')
                 tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
                 #print json.loads(status.json).keys()
@@ -213,7 +236,6 @@ class giSeeker():
                     self.jsonRaw.append(status.json)
                     self.tweetTypes.append(tweetType) 
             
-            hasResults = len(idList) != 0
             
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
@@ -223,11 +245,20 @@ class giSeeker():
                     tweetsPerHour = "NA"
             else:
                 tweetsPerHour = 0
-            print "\n%s tweets acquired with %s geolocated and %s mappable hits, will sleep %s seconds until next search" % (len(idList),inBox, mappable,self.searchDelay)
+            print "\nFound %s tweets with %s geolocated and %s mappable hits, will sleep %s seconds until next search" % (len(idList),inBox, mappable,self.searchDelay)
             if hasResults:
                 print "\tFirst tweet: %s\tLast tweet: %s\t\tTweets Per Hour: %s" % (collected[0].created_at, collected[-1].created_at, tweetsPerHour)
             time.sleep(self.searchDelay)
             
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 class giListener(tweepy.StreamListener):
     def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
@@ -297,10 +328,10 @@ class giListener(tweepy.StreamListener):
         timeStamp = self.startTime
         
         if self.cfg['KeepRaw']:
-            with open(self.pathOut+'Raw_'+timeStamp, 'w') as outFile:
+            with open(self.pathOut+'Raw_'+timeStamp+'.json', 'w') as outFile:
                 json.dump(self.jsonRaw,outFile)
 
-        with open(self.pathOut+self.cfg['FileName']+'_'+timeStamp, 'w') as outFile:
+        with open(self.pathOut+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
             json.dump(meaningful,outFile)
         giListener.flushTweets(self) 
  
