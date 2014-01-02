@@ -20,7 +20,7 @@ class giSeeker():
         self.name = name
         self.exclusions = exclusions
         self.cfg = cfg
-        self.searchDelay = 300
+        self.searchDelay = 3000
         self.testSpace = testSpace
         self.runDay = datetime.datetime.today().strftime("%A %d")
         self.lastWrite = 'null'
@@ -186,9 +186,9 @@ class giSeeker():
             if hasResults:
                 self.startDay = collected[0].created_at.strftime("%A %d")
                 self.startTime = collected[0].created_at.strftime("%A_%m-%d-%y_%H-%M-%S")
-            
-            if self.lastWrite != 'null' and self.lastWrite != self.startDay:
-                newDay = True
+                if self.lastWrite != 'null' and self.lastWrite != self.startDay:
+                    print "Good morning! New day noted, preparing to save tweets."
+                    newDay = True
                                    
             for status in collected:
                 idList.add(int(status.id))
