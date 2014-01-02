@@ -7,6 +7,14 @@ from copy import deepcopy
 from geopy.distance import great_circle
 
 
+def uniqueJson(rawResults):
+    """ returns a tweet json filtered for unique IDS and sorted"""
+    collected = rawResults[:]
+    collected = dict([(tweet.id, tweet) for tweet in collected]).values()
+    collected = sorted(collected, key=lambda k: k.id)
+    return collected
+    
+
 def getLogins(directory, files):
     """gets login parameters from list & directory passed on by config file"""
     logins = {}

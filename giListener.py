@@ -176,9 +176,8 @@ class giSeeker():
             idList = set()            
             inBox = mappable = 0
             
-            collected = list(set(collected))
             hasResults = len(collected) != 0
-            collected = sorted(collected, key=lambda k: k.id)  
+            collected = uniqueJson(collected)
             
             if hasResults:
                 self.startDay = collected[0].created_at.strftime("%A %d")
