@@ -23,6 +23,7 @@ class giSeeker():
         self.searchDelay = 300
         self.testSpace = testSpace
         self.runDay = datetime.datetime.today().strftime("%A %d")
+        self.lastWrite = 'null'
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
         self.geo = str(getGeo(cfg)).replace(' ','')[1:-1]+'mi'
@@ -89,6 +90,7 @@ class giSeeker():
             
         #timeStamp = datetime.date.today().strftime("%A")
         timeStamp = self.startTime
+        self.lastWrite = self.startDay
         
         if self.cfg['KeepRaw']:
             with open(self.pathOut+'Raw_'+timeStamp+'.json', 'w') as outFile:
@@ -101,6 +103,7 @@ class giSeeker():
         
         print '\tJson text dump complete, buffering....'    
         time.sleep(1)
+        
         
         giSeeker.flushTweets(self)
 
@@ -145,6 +148,7 @@ class giSeeker():
             print "Query Length: %s\tContents:\n%s\n" % (len(item), item)
                 
     def run(self):
+        newDay = False
         print "\nPreparing to run..."
         print "Geographic Selection:", self.geo, '\n\n'
         while True:
@@ -182,10 +186,14 @@ class giSeeker():
             if hasResults:
                 self.startDay = collected[0].created_at.strftime("%A %d")
                 self.startTime = collected[0].created_at.strftime("%A_%m-%d-%y_%H-%M-%S")
+            
+            if self.lastWrite != 'null' and self.lastWrite != self.startDay:
+                newDay = True
                                    
             for status in collected:
                 idList.add(int(status.id))
-                if self.startDay != status.created_at.strftime("%A %d") or self.tweetCount >= self.cfg['StopCount']:
+                if self.startDay != status.created_at.strftime("%A %d") or self.tweetCount >= self.cfg['StopCount'] or newDay:
+                    newDay = False
                     giSeeker.saveTweets(self)
                     if self.startDay != status.created_at.strftime("%A %d"):
                         giSeeker.closeDay(self)
