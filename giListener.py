@@ -85,8 +85,8 @@ class giSeeker():
                         self.partialCount,
                         self.irrelevantCount)        
        
-        if self.cfg['KeepKeys'] != 'all':
-            cleanJson(meaningful,self.cfg['KeepKeys'],self.tweetTypes)
+        if self.cfg['TweetData'] != 'all':
+            cleanJson(meaningful,self.cfg,self.tweetTypes)
             
         #timeStamp = datetime.date.today().strftime("%A")
         timeStamp = self.startTime
@@ -328,8 +328,8 @@ class giListener(tweepy.StreamListener):
                 
         meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
         
-        if self.cfg['KeepKeys'] != 'all':
-            cleanJson(meaningful,self.cfg['KeepKeys'],self.tweetTypes)
+        if self.cfg['TweetData'] != 'all':
+            cleanJson(meaningful,self.cfg,self.tweetTypes)
             
         #timeStamp = datetime.date.today().strftime("%A")
         timeStamp = self.startTime

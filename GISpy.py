@@ -181,41 +181,38 @@ def checkTweet(conditions, qualifiers, exclusions, text):
 
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
-def cleanJson(jsonIn, keep, types):
+def cleanJson(jsonIn, cfg, types):
+    tweetData = cfg['TweetData']
+    userData = cfg['UserData']
+    keepUser = len(userData) > 0 and 'user' not in tweetData
     userKeys = []
     toDelete = []
-    for pos in range(len(keep)):
-        key = keep[pos]
-        if "user['" in key:
-            userKeys.append(key.replace("user['",'').replace("']",''))
-            toDelete.insert(0,pos)
-    if toDelete != []:
-        for pos in toDelete:
-            del keep[pos]        
+    
     for row in range(len(jsonIn)):
         loaded = json.loads(jsonIn[row])
-        userData = loaded['user']
+        loadedUser = loaded['user']
         del loaded['user']
-        tempJson = dict([(i, loaded[i]) for i in keep if i in loaded])
-        if userKeys != []:
-            for item in userKeys:
-                if item in userData:
-                    tempJson[item] = userData[item]
+        tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
+        userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
+        if keepUser:
+            for key in userJson.keys():
+                tempJson['user_' + key] = userJson[key]
         jsonIn[row] = tempJson
         jsonIn[row]['tweetType'] = types[row]
-    #for item in jsonIn:
-        #print "STORED:", item
+
     print
         
         
         
 #Loads configuration from file config
 def getConfig(directory):
-    keepKeys = {}
+    TweetData = {}
+    UserData = {}
     params = {'StopTime':0,'StopCount':15,'KeepRaw':True,
-                'KeepKeys':keepKeys,'FileName':'filtered',
-                'OutDir':'outPut/','KeepKeys':'all',
-                'KeepAccepted':True,'KeepPartial':True,'KeepExcluded':True, 'method':'stream'}
+                'TweetData':TweetData, 'UserData':UserData,
+                'FileName':'filtered','OutDir':'outPut/',
+                'KeepAccepted':True,'KeepPartial':True,
+                'KeepExcluded':True, 'method':'stream'}
     
     if directory == "null":
         directory = ''
@@ -244,9 +241,14 @@ def getConfig(directory):
     
     params['Logins'] = textToList(params['Logins'])    
     try:
-        params['KeepKeys'] = textToList(params['KeepKeys'])
+        params['TweetData'] = textToList(params['TweetData'])
     except:
         None
+    try:
+        params['UserData'] = textToList(params['UserData'])
+    except:
+        None
+        
         
     for key,item in params.iteritems():
         print '\t*', key,':', item
@@ -256,15 +258,6 @@ def getConfig(directory):
     if params['Lon1']>params['Lon2']:
         params['Lon1'],params['Lon2'] = params['Lon2'],params['Lon1']
     
-    found = False
-    for entry in params['KeepKeys']:
-        if entry.startswith('user['):
-            found = True
-            break
-    if found:
-        params['KeepKeys'].append('user')
-    while params['KeepKeys'].count('user') > 1:
-        del params['KeepKeys'][params['KeepKeys'].index('user')]
     return params
     
     

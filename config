@@ -11,4 +11,5 @@ Qualifiers = qualifiers
 Exclusions = exclusions
 OutDir = output/
 FileName = FilteredTweets
-KeepKeys = text, id, coordinates, created_at, user['screen_name'], user['lang']
+TweetData = text, id, coordinates, created_at
+UserData =  screen_name, lang
