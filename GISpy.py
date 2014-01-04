@@ -20,12 +20,12 @@ def uniqueJson(rawResults):
 def getLogins(directory, files):
     """gets login parameters from list & directory passed on by config file"""
     logins = {}
-    
+    print
     for fileName in files:
         params = {'description':'null'}
         if directory == "null":
             directory = ''
-        print "\nLoading login file:", directory + fileName
+        print "Loading login file:", directory + fileName
         fileIn = open(directory+fileName)
         content = fileIn.readlines()
         for item in content:
@@ -45,6 +45,7 @@ def getLogins(directory, files):
         #for key,item in params.iteritems():
         #    print '\t*', key,':', item
         logins[fileName] = deepcopy(params)
+    print
     return logins
     
 
@@ -331,8 +332,8 @@ def getConfig(directory):
         None
         
         
-    for key,item in params.iteritems():
-        print '\t*', key,':', item
+    for key in sorted(params.keys()):
+        print  '\t*', key,':', params[key]
     
     if params['Lat1']>params['Lat2']:
         params['Lat1'],params['Lat2'] = params['Lat2'],params['Lat1']

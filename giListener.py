@@ -52,6 +52,7 @@ class giSeeker():
         
         
         if self.runDay != datetime.date.today().strftime("%A %d"):
+            print "End of day noted, updating word banks & reformating past filtered output"
             lists = updateWordBanks(directory, self.cfg)
             reformatOld(directory, lists, self.cfg)
             self.conditions = lists['conditions']
