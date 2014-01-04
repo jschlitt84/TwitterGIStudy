@@ -114,13 +114,14 @@ class giSeeker():
         print "\nChecking for last tweet ID loaded..."
         try:
             fileList = os.listdir(self.pathOut)
-            fileList = [i for i in fileList if (".json" in i.lower() and i.lower().startswith(raw))]
+            fileList = [i for i in fileList if (".json" in i.lower() and i.lower().startswith('raw'))]
             fileList = filter(lambda i: not os.path.isdir(self.pathOut+i), fileList)
-            
             newest = self.pathOut + max(fileList, key=lambda i: os.stat(self.pathOut+i).st_mtime)
             print "\tNewest File:", newest
             inFile = open(newest)
             listed = json.load(inFile)
+            jsonToDictFix(listed)
+            
             ids = set()
             for tweet in listed:
                 ids.add(tweet['id'])

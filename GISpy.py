@@ -187,9 +187,9 @@ def jsonToDictFix(jsonIn):
             jsonIn[row] = json.loads(jsonIn[row])
             
 def dictToJsonFix(jsonOut):
-     for row in range(len(jsonIn)):
-        if type(jsonIn[row]) is dict:
-            jsonIn[row] = json.dump(jsonIn[row])   
+     for row in range(len(jsonOut)):
+        if type(jsonOut[row]) is dict:
+            jsonOut[row] = json.dump(jsonOut[row])   
 
 def reformatOld(directory, lists, cfg):
     homeDirectory = directory
@@ -246,7 +246,7 @@ def reformatOld(directory, lists, cfg):
             
             cleanJson(filteredContent,cfg,types)
             
-            print "Saving file as", outName
+            print "\tSaving file as", outName
             
             with open(directory+outName, 'w') as outFile:
                 json.dump(filteredContent,outFile)
@@ -280,10 +280,7 @@ def cleanJson(jsonIn, cfg, types):
                 jsonIn[row]['tweetType'] = types[row]
             elif type(types[row]) is dict:
                 for key in types[row].keys():
-                    jsonIn[row][key] = types[row][key]
-
-    print
-        
+                    jsonIn[row][key] = types[row][key]        
         
         
 #Loads configuration from file config

@@ -64,7 +64,7 @@ def getTweets(login, cfg, conditions, qualifiers, exclusions):
 
 def getViaSearch(login, cfg, conditions, qualifiers, exclusions):
     """acquires tweets via search method"""
-    print "\nSetting up searc(es)"
+    print "\nSetting up search(es)"
     name = login['name']    
     filterType = cfg['FilterType'].lower()
     seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
