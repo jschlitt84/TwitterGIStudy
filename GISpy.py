@@ -1,10 +1,12 @@
 import json
 import random
-import time
-import os
+import datetime,time
+import os, shutil
 
 from copy import deepcopy
 from geopy.distance import great_circle
+
+timeArgs = "%A_%m-%d-%y_%H-%M-%S"
 
 
 def uniqueJson(rawResults):
@@ -178,6 +180,78 @@ def checkTweet(conditions, qualifiers, exclusions, text):
     else:
         return "irrelevant"
 
+def jsonToDictFix(jsonIn):
+    for row in range(len(jsonIn)):
+        if type(jsonIn[row]) is str or type(jsonIn[row]) is unicode:
+            jsonIn[row] = json.loads(jsonIn[row])
+            
+def dictToJsonFix(jsonOut):
+     for row in range(len(jsonIn)):
+        if type(jsonIn[row]) is dict:
+            jsonIn[row] = json.dump(jsonIn[row])   
+
+def reformatOld(directory, lists, cfg):
+    homeDirectory = directory
+    keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
+    
+    print "Preparing to reformat from raw tweets..."
+    if 'output' not in directory.lower():
+        directory += 'output/' + cfg['Method'] + '/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        fileList = []
+    else:
+        fileList = os.listdir(directory)
+        oldFiltered = [i for i in fileList if i.lower().startswith('filteredtweets')]
+        fileList = [i for i in fileList if i.lower().startswith('raw')]
+    
+    
+    if len(fileList) != 0:
+        
+        """
+        # backup old filtered files
+        
+        timeStamp = datetime.datetime.now().strftime(timeArgs)
+        newDir = directory+'Old_Filtered_Tweets/Moved_On_'+timeStamp
+        os.makedirs(newDir)
+        print "Moving old files to", newDir
+        for oldFile in oldFiltered:
+            print "\t",oldFile
+            shutil.move(directory+oldFile,newDir)
+        print "archiving complete"
+        """
+        
+        lists = updateWordBanks(homeDirectory, cfg)
+            
+        fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
+        for fileName in fileList:
+            inFile = open(directory+fileName)
+            content = json.load(inFile)
+            outName = fileName.replace('Raw','FilteredTweets')
+            types = []
+            filteredContent = []
+            
+            print "Reclassifying", fileName, "by updated lists"
+            
+            if lists != "null":
+                jsonToDictFix(content)
+            
+            for tweet in content:
+                tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
+                if tweetType in keepTypes:
+                    geoType = isInBox(cfg,tweet['coordinates'])
+                    types.append({'tweetType':tweetType,'geoType':geoType['text']})
+                    filteredContent.append(tweet)
+            
+            cleanJson(filteredContent,cfg,types)
+            
+            print "Saving file as", outName
+            
+            with open(directory+outName, 'w') as outFile:
+                json.dump(filteredContent,outFile)
+            outFile.close()
+    else:
+        print "Directory empty, reformat skipped"
 
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
@@ -188,17 +262,24 @@ def cleanJson(jsonIn, cfg, types):
     userKeys = []
     toDelete = []
     
-    for row in range(len(jsonIn)):
-        loaded = json.loads(jsonIn[row])
-        loadedUser = loaded['user']
-        del loaded['user']
-        tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
-        userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
-        if keepUser:
-            for key in userJson.keys():
-                tempJson['user_' + key] = userJson[key]
-        jsonIn[row] = tempJson
-        jsonIn[row]['tweetType'] = types[row]
+    jsonToDictFix(jsonIn)
+    
+    if len(tweetData + userData) > 0:
+        for row in range(len(jsonIn)):
+            loaded = jsonIn[row]
+            loadedUser = loaded['user']
+            del loaded['user']
+            tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
+            userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
+            if keepUser:
+                for key in userJson.keys():
+                    tempJson['user_' + key] = userJson[key]
+            jsonIn[row] = tempJson
+            if type(types[row]) is str:
+                jsonIn[row]['tweetType'] = types[row]
+            elif type(types[row]) is dict:
+                for key in types[row].keys():
+                    jsonIn[row][key] = types[row][key]
 
     print
         
@@ -206,7 +287,7 @@ def cleanJson(jsonIn, cfg, types):
         
 #Loads configuration from file config
 def getConfig(directory):
-    TweetData = {}
+    TweetData = 'all'
     UserData = {}
     params = {'StopTime':0,'StopCount':15,'KeepRaw':True,
                 'TweetData':TweetData, 'UserData':UserData,

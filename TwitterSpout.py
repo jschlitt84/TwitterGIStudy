@@ -25,10 +25,13 @@ def parse(cls, api, raw):
 tweepy.models.Status.first_parse = tweepy.models.Status.parse
 tweepy.models.Status.parse = parse
    
+   
+   
 def stripWords(text):
     """Filters out non alphanumeric characters, leaves hashtags"""
     listed = ''.join((c if (c.isalnum()) else ' ') for c in text).split()
     return listed
+    
     
 
 def getAuth(login):
@@ -118,7 +121,8 @@ def main():
     cfg['directory'] = directory
     logins = getLogins(directory, cfg['Logins'])
     
-    lists = updateWordBanks(directory, cfg) 
+    lists = updateWordBanks(directory, cfg)
+    reformatOld(directory,lists,cfg) 
     
     print "\nPlease choose login number:"
     if userLogin == 'null':
