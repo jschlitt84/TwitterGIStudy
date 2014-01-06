@@ -24,3 +24,20 @@ import json, csv
 
     for row in x:
         f.writerow( [row['longitude'], row['latitude']] )
+#load json  
+try:
+    with open('tmp.p', 'rb') as f:
+        myjson = json.load(f) 
+except IOError:
+    print("Error converting to json")
+
+#write selected json to a csv output file      
+out = open(savedpath, 'a+')
+    try:
+        #add or remove data to parse here    
+        mydata = ('d','b','a')
+
+        mycsv = csv.DictWriter(out, fieldnames=mydata, quoting=csv.QUOTE_ALL, extrasaction='ignore', lineterminator='\n')
+        mycsv.writeheader()
+        for row in myjson["data"]:
+            mycsv.writerow(row)
