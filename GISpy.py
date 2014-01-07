@@ -18,7 +18,6 @@ def myTime(utcTime,offset):
         offsetReal = offset['TimeOffset']
     else:
         offsetReal = offset
-    print "DEBUG", utcTime, type(utcTime), offset, utcTime - datetime.timedelta(seconds = offsetReal)
     if abs(offsetReal) <= 12:
         return utcTime + datetime.timedelta(hours = offsetReal)
     else:
@@ -27,7 +26,6 @@ def myTime(utcTime,offset):
 def getLocalTime(status, offset):
     if type(status) is dict:
         print status.keys()
-        print "DEBBOOOO", type(status)
         utcTime = status['created_at']
     else:
         utcTime = status.created_at
