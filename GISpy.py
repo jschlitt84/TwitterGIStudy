@@ -5,9 +5,35 @@ import os, shutil
 
 from copy import deepcopy
 from geopy.distance import great_circle
+from dateutil import parser
 
-timeArgs = "%A_%m-%d-%y_%H-%M-%S"
+#timeArgs = "%A_%m-%d-%y_%H-%M-%S"
+timeArgs = '%a, %d %b %Y %H:%M:%S'
 
+def outTime(dtobject):
+    return dtobject.strftime(timeArgs)
+
+def myTime(utcTime,offset):
+    if type(offset) is dict:
+        offsetReal = offset['TimeOffset']
+    else:
+        offsetReal = offset
+    print "DEBUG", utcTime, type(utcTime), offset, utcTime - datetime.timedelta(seconds = offsetReal)
+    if abs(offsetReal) <= 12:
+        return utcTime + datetime.timedelta(hours = offsetReal)
+    else:
+        return utcTime + datetime.timedelta(seconds = offsetReal)
+    
+def getLocalTime(status, offset):
+    if type(status) is dict:
+        print status.keys()
+        print "DEBBOOOO", type(status)
+        utcTime = status['created_at']
+    else:
+        utcTime = status.created_at
+    if type(utcTime) != datetime.datetime:
+        utcTime = parser.parse(utcTime)
+    return myTime(utcTime,offset)
 
 def uniqueJson(rawResults):
     """ returns a tweet json filtered for unique IDS and sorted"""
@@ -241,7 +267,7 @@ def reformatOld(directory, lists, cfg):
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
                     geoType = isInBox(cfg,tweet['coordinates'])
-                    types.append({'tweetType':tweetType,'geoType':geoType['text']})
+                    types.append({'tweetType':tweetType,'geoType':geoType['text'],'localTime':outTime(getLocalTime(tweet,cfg))})
                     filteredContent.append(tweet)
             
             cleanJson(filteredContent,cfg,types)
