@@ -12,26 +12,33 @@ timeArgs = '%a, %d %b %Y %H:%M:%S'
 
 def outTime(dtobject):
     return dtobject.strftime(timeArgs)
+    
+def localTime(timeContainer, offset):
+    typeTC = type(timeContainer)
+    if typeTC != datetime.datetime and typeTC != datetime.time and typeTC != datetime.date:
+        if typeTC is dict:
+            utcTime =timeContainer['created_at']
+        elif typeTC is str:
+            utcTime = parser.parse(utcTime)
+        else:
+            utcTime = timeContainer.created_at  
+        if type(utcTime) is str or type(utcTime) is unicode:
+            utcTime = parser.parse(utcTime)    
+    else:
+        utcTime = timeContainer 
 
-def myTime(utcTime,offset):
     if type(offset) is dict:
         offsetReal = offset['TimeOffset']
     else:
         offsetReal = offset
-    if abs(offsetReal) <= 12:
-        return utcTime + datetime.timedelta(hours = offsetReal)
-    else:
-        return utcTime + datetime.timedelta(seconds = offsetReal)
     
-def getLocalTime(status, offset):
-    if type(status) is dict:
-        print status.keys()
-        utcTime = status['created_at']
-    else:
-        utcTime = status.created_at
-    if type(utcTime) != datetime.datetime:
-        utcTime = parser.parse(utcTime)
-    return myTime(utcTime,offset)
+    if abs(offsetReal) <= 12:
+        offsetReal *= 3600
+
+    corrected =  utcTime + datetime.timedelta(seconds=offsetReal)   
+    
+    return corrected
+    #return {'dt':corrected,'text':corrected.stroftime(timeArgs)}
 
 def uniqueJson(rawResults):
     """ returns a tweet json filtered for unique IDS and sorted"""
@@ -265,7 +272,7 @@ def reformatOld(directory, lists, cfg):
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
                     geoType = isInBox(cfg,tweet['coordinates'])
-                    types.append({'tweetType':tweetType,'geoType':geoType['text'],'localTime':outTime(getLocalTime(tweet,cfg))})
+                    types.append({'tweetType':tweetType,'geoType':geoType['text'],'localTime':outTime(localTime(tweet,cfg))})
                     filteredContent.append(tweet)
             
             cleanJson(filteredContent,cfg,types)

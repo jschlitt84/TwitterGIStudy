@@ -19,7 +19,7 @@ class giSeeker():
         self.cfg = cfg
         self.searchDelay = 3000
         self.testSpace = testSpace
-        self.runDay = datetime.datetime.today().strftime("%A %d")
+        self.runDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
         self.lastWrite = 'null'
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
@@ -51,14 +51,14 @@ class giSeeker():
         fileOut.close()
         
         
-        if self.runDay != datetime.date.today().strftime("%A %d"):
+        if self.runDay != localTime(datetime.date.today(),self.cfg).strftime("%A %d"):
             print "End of day noted, updating word banks & reformating past filtered output"
             lists = updateWordBanks(directory, self.cfg)
             reformatOld(directory, lists, self.cfg)
             self.conditions = lists['conditions']
             self.qualifiers = lists['qualifiers']
             self.exclusions = lists['exclusions']
-            self.runDay = datetime.date.today().strftime("%A %d")
+            self.runDay = localTime(datetime.date.today(),self.cfg).strftime("%A %d")
             
         
         
@@ -185,21 +185,21 @@ class giSeeker():
             collected = uniqueJson(collected)
             
             if hasResults:
-                self.startDay = collected[0].created_at.strftime("%A %d")
-                self.startTime = outTime(collected[0].created_at)
+                self.startDay = localTime(collected[0].created_at,self.cfg).strftime("%A %d")
+                self.startTime = localTime(collected[0].created_at,self.cfg).strftime(timeArgs)
                 if self.lastWrite != 'null' and self.lastWrite != self.startDay:
                     print "Good morning! New day noted, preparing to save tweets."
                     newDay = True
                                    
             for status in collected:
                 idList.add(int(status.id))
-                if self.startDay != status.created_at.strftime("%A %d") or self.tweetCount >= self.cfg['StopCount'] or newDay:
+                if self.startDay != localTime(status.created_at,self.cfg).strftime("%A %d") or self.tweetCount >= self.cfg['StopCount'] or newDay:
                     newDay = False
                     giSeeker.saveTweets(self)
-                    if self.startDay != status.created_at.strftime("%A %d"):
+                    if self.startDay != localTime(status.created_at,self.cfg).strftime("%A %d"):
                         giSeeker.closeDay(self)
-                        self.startDay = status.created_at.strftime("%A %d")
-                        self.startTime = outTime(status.created_at)
+                        self.startDay = localTime(status.created_at,self.cfg).strftime("%A %d")
+                        self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
                     
                 text = status.text.replace('\n',' ')
                 tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
@@ -207,14 +207,14 @@ class giSeeker():
                 percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
                 
                 geoInfo = isInBox(self.cfg,status.coordinates)
-                localTime = outTime(getLocalTime(status,self.cfg))
+                tweetLocalTime = outTime(localTime(status,self.cfg))
                 inBox += geoInfo['inBox']
                 
                 loginInfo = "\033[94m%s:%s:%s%%\033[0m" % (self.name,geoInfo['text'],percentFilled)
                 if tweetType == "accepted":
                     print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                                 status.author.screen_name, 
-                                localTime, 
+                                tweetLocalTime, 
                                 status.source,)
                     if geoInfo['inBox']:
                         mappable += 1
@@ -224,7 +224,7 @@ class giSeeker():
                 elif tweetType == "excluded":
                     print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
                                 status.author.screen_name, 
-                                localTime, 
+                                tweetLocalTime, 
                                 status.source,)
                     self.tweetCount += self.cfg['KeepExcluded']
                     self.excludedCount += 1
@@ -232,7 +232,7 @@ class giSeeker():
                 elif tweetType == "partial":
                     print loginInfo, "%s\t%s\t%s\t%s" % (text, 
                                 status.author.screen_name, 
-                                localTime, 
+                                tweetLocalTime, 
                                 status.source,)
                     self.tweetCount += self.cfg['KeepPartial']
                     self.partialCount += 1
@@ -243,7 +243,7 @@ class giSeeker():
                     self.irrelevantCount += 1
                 if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
                     self.jsonRaw.append(status.json)
-                    self.tweetTypes.append({'geoType':geoInfo,'tweetType':tweetType,'localTime':localTime}) 
+                    self.tweetTypes.append({'geoType':geoInfo,'tweetType':tweetType,'localTime':tweetLocalTime}) 
             
             
             if hasResults:
@@ -316,8 +316,8 @@ class giListener(tweepy.StreamListener):
         self.jsonPartial = []
         self.jsonExcluded = []
         self.tweetTypes = []
-        self.startTime = outTime(datetime.datetime.now())
-        self.startDay = datetime.date.today().strftime("%A")
+        self.startTime = localTime(datetime.datetime.now(),self.cfg).strftime(timeArgs)
+        self.startDay = localTime(datetime.date.today(),self.cfg).strftime("%A")
 
     
     def saveTweets(self):
@@ -348,17 +348,18 @@ class giListener(tweepy.StreamListener):
     
     def on_status(self, status):
         try:
-            if self.startDay != datetime.date.today().strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
+            if self.startDay != localTime(datetime.date.today(),self.cfg).strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
                 giListener.saveTweets(self)
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
             #print json.loads(status.json).keys()
             percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
             loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,percentFilled)
+            tweetLocalTime = outTime(localTime(status,self.cfg))
             if tweetType == "accepted":
                 print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                             status.author.screen_name, 
-                            status.created_at, 
+                            tweetLocalTime, 
                             status.source,)
                 self.tweetCount += self.cfg['KeepAccepted']
                 self.acceptedCount += 1
@@ -366,7 +367,7 @@ class giListener(tweepy.StreamListener):
             elif tweetType == "excluded":
                 print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
                             status.author.screen_name, 
-                            status.created_at, 
+                            tweetLocalTime, 
                             status.source,)
                 self.tweetCount += self.cfg['KeepExcluded']
                 self.excludedCount += 1
@@ -374,7 +375,7 @@ class giListener(tweepy.StreamListener):
             elif tweetType == "partial":
                 print loginInfo, "%s\t%s\t%s\t%s" % (text, 
                             status.author.screen_name, 
-                            status.created_at, 
+                            tweetLocalTime, 
                             status.source,)
                 self.tweetCount += self.cfg['KeepPartial']
                 self.partialCount += 1
