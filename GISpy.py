@@ -164,20 +164,25 @@ def openWhenReady(directory, mode):
 #http://code.google.com/p/geopy/wiki/GettingStarted
 
 def isInBox(cfg,status):
-    gCoder = geocoders.GeocoderDotUS()
+    #gCoder = geocoders.GeocoderDotUS()
+    hasCoords = False
+    place = 'Nan'
     #Yahoo API key needed for best results
     if type(status) is dict:
         userLoc = status['user']['location']
         coordinates = status['coordinates']
+        if type(coordinates) is dict:
+            coordinates = coordinates['coordinates']
+            hasCoords = True
     else:
         userLoc = status.user.location
         coordinates = status.coordinates
-    
-    hasCoords = False
-    if type(coordinates) is dict:
-        coordinates = coordinates['coordinates']
-        hasCoords = True
-    elif (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None":
+        print coordinates, type(coordinates)
+        if type(coordinates) is dict:
+            coordinates = coordinates['coordinates']
+            hasCoords = True
+            
+    if (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None":
         if userLoc.startswith("\u00dcT:"):
             coordinates = str(userLoc).replace("\u00dcT: ",'').split(',')
             coordinates[0],coordinates[1] = int(coordinates[0]),int(coordinates[1])
@@ -185,7 +190,7 @@ def isInBox(cfg,status):
         else:
             #lookup coords by location name
             try:
-                place, (lat, lng) = gCoder.geocode(str(userLoc))  
+                #place, (lat, lng) = gCoder.geocode(str(userLoc))  
                 pos = [lng,lat]
             except:
                 return {'inBox':False,'text':'NoCoords','place':'NaN'}
@@ -194,9 +199,10 @@ def isInBox(cfg,status):
         
     if hasCoords:
         try:
-            place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+            #place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+            None
         except:
-            place = "NaN"
+            None
     
     if place == None or place == 'None':
         place = 'NaN'
@@ -264,9 +270,14 @@ def checkTweet(conditions, qualifiers, exclusions, text):
         return "irrelevant"
 
 def jsonToDictFix(jsonIn):
-    for row in range(len(jsonIn)):
-        if type(jsonIn[row]) is str or type(jsonIn[row]) is unicode:
-            jsonIn[row] = json.loads(jsonIn[row])
+    if type(jsonIn) is list:
+        for row in range(len(jsonIn)):
+            if type(jsonIn[row]) is str or type(jsonIn[row]) is unicode:
+                jsonIn[row] = json.loads(jsonIn[row])
+    elif type(jsonIn) is dict:
+        None
+    else:
+        jsonIn = json.loads(jsonIn)
             
 def dictToJsonFix(jsonOut):
      for row in range(len(jsonOut)):
