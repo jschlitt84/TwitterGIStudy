@@ -13,4 +13,4 @@ OutDir = output/
 TimeOffset = -5
 FileName = GIStudy
 TweetData = text, id, coordinates, created_at
-UserData =  screen_name, lang
+UserData =  screen_name, lang, location

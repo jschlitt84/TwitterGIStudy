@@ -1,14 +1,26 @@
-import json
+import json, csv
 import random
 import datetime,time
 import os, shutil
+import pandas as pd
+import unicodedata
 
 from copy import deepcopy
 from geopy.distance import great_circle
+from geopy import geocoders
 from dateutil import parser
 
 #timeArgs = "%A_%m-%d-%y_%H-%M-%S"
-timeArgs = '%a, %d %b %Y %H:%M:%S'
+timeArgs = '%a %d %b %Y %H:%M:%S'
+
+def stripUnicode(text):
+    if text == None:
+        return "NaN"
+    else:
+        if type(text) == unicode:
+            return str(unicodedata.normalize('NFKD', text).encode('ascii', 'ignore'))
+        else:
+            return text
 
 def outTime(dtobject):
     return dtobject.strftime(timeArgs)
@@ -43,8 +55,12 @@ def localTime(timeContainer, offset):
 def uniqueJson(rawResults):
     """ returns a tweet json filtered for unique IDS and sorted"""
     collected = rawResults[:]
-    collected = dict([(tweet.id, tweet) for tweet in collected]).values()
-    collected = sorted(collected, key=lambda k: k.id)
+    if type(collected[0] ) is dict:
+        collected = dict([(tweet['id'], tweet) for tweet in collected]).values()
+        collected = sorted(collected, key=lambda k: k['id'])
+    else:
+        collected = dict([(tweet.id, tweet) for tweet in collected]).values()
+        collected = sorted(collected, key=lambda k: k.id)
     return collected
     
 
@@ -145,19 +161,52 @@ def openWhenReady(directory, mode):
     return fileOut
 
 #Returns true if coord is within lat/lon box, false if not
-def isInBox(cfg,pos):
-    try:
-        pos = pos['coordinates']
-    except:
-        return {'inBox':False,'text':'NoCoords'}
+#http://code.google.com/p/geopy/wiki/GettingStarted
+
+def isInBox(cfg,status):
+    gCoder = geocoders.GeocoderDotUS()
+    if type(status) is dict:
+        userLoc = status['user']['location']
+        coordinates = status['coordinates']
+    else:
+        userLoc = status.user.location
+        coordinates = status.coordinates
+    
+    hasCoords = False
+    if type(coordinates) is dict:
+        coordinates = coordinates['coordinates']
+        hasCoords = True
+    elif (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None":
+        if userLoc.startswith("\u00dcT:"):
+            coordinates = str(userLoc).replace("\u00dcT: ",'').split(',')
+            print "DEBOOO1", coordinates
+            coordinates[0],coordinates[1] = int(coordinates[0]),int(coordinates[1])
+            hasCoords = True
+        else:
+            #lookup coords by location name
+            try:
+                place, (lat, lng) = gCoder.geocode(str(userLoc))  
+                pos = [lng,lat]
+            except:
+                return {'inBox':False,'text':'NoCoords','place':'NaN'}
+    else: 
+        return {'inBox':False,'text':'NoCoords','place':'NaN'}
+        
+    if hasCoords:
+        print "DEBOOO2", coordinates, str(coordinates[1])+','+str(coordinates[0])
+        place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+    
+    if place == None or place == 'None':
+        place = 'NaN'
+        
     try:
         if sorted([cfg['Lat1'],cfg['Lat2'],pos[1]])[1] != pos[1]:
-            return {'inBox':False,'text':'HasCoords'}
+            return {'inBox':False,'text':'HasCoords','place':place}
         if sorted([cfg['Lon1'],cfg['Lon2'],pos[0]])[1] != pos[0]:
-            return {'inBox':False,'text':'HasCoords'}
-        return {'inBox':True,'text':'InBox'}
+            return {'inBox':False,'text':'HasCoords','place':place}
+        return {'inBox':True,'text':'InBox','place':place}
     except:
-        return {'inBox':False,'text':'Error'}
+        return {'inBox':False,'text':'Error','place':place}
 
 
 # Finds center and radius in miles of circle than covers lat lon box
@@ -252,14 +301,16 @@ def reformatOld(directory, lists, cfg):
             shutil.move(directory+oldFile,newDir)
         print "archiving complete"
         """
+        if lists == 'null':
+            lists = updateWordBanks(homeDirectory, cfg)
         
-        lists = updateWordBanks(homeDirectory, cfg)
+        collectedContent = []
+        collectedTypes = []
             
         fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
         for fileName in fileList:
             inFile = open(directory+fileName)
             content = json.load(inFile)
-            outName = fileName.replace('Raw','FilteredTweets')
             types = []
             filteredContent = []
             
@@ -271,23 +322,67 @@ def reformatOld(directory, lists, cfg):
             for tweet in content:
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
-                    geoType = isInBox(cfg,tweet['coordinates'])
+                    geoType = isInBox(cfg,tweet)
                     types.append({'tweetType':tweetType,'geoType':geoType['text'],'localTime':outTime(localTime(tweet,cfg))})
                     filteredContent.append(tweet)
             
-            cleanJson(filteredContent,cfg,types)
-            
+            collectedContent += filteredContent
+            collectedTypes += types                    
+
+            filteredContent = cleanJson(filteredContent,cfg,types)
+            outName = fileName.replace('Raw','FilteredTweets')
             print "\tSaving file as", outName
-            
             with open(directory+outName, 'w') as outFile:
                 json.dump(filteredContent,outFile)
             outFile.close()
+            
+
+        collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
+        outName = cfg['FileName']+"_CollectedTweets"
+        
+        print "Writing collected tweets to "+outName+".json"
+        with open(directory+outName+'.json', 'w') as outFile:
+                json.dump(collectedContent,outFile)
+        outFile.close()
+        print "...complete"
+        
+        jsonToDictFix(collectedContent)
+        
+        orderedKeys = sorted(collectedContent[0].keys())
+        orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
+        addKeys = ["score","check3","check2","check1"]
+        for key in addKeys:
+            if key not in orderedKeys:  
+                orderedKeys.insert(1,key)
+                
+        for pos in range(len(collectedContent)):
+            for key in orderedKeys:
+                if key not in collectedContent[pos].keys():
+                    collectedContent[pos][key] = 'NaN'
+                else:
+                    collectedContent[pos][key] = stripUnicode(collectedContent[pos][key])
+        
+        print "Writing collected tweets to "+outName+".csv"   
+        outFile = open(directory+outName+'.csv', "w") 
+        csvOut = csv.DictWriter(outFile,orderedKeys)
+        csvOut.writer.writerow(orderedKeys)
+        csvOut.writerows(collectedContent)
+        """for row in collectedContent:
+            print row
+            csvOut.writerow(row)
+            print "complete"""
+        outFile.close()
+        print "...complete"
+             
     else:
         print "Directory empty, reformat skipped"
 
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
-def cleanJson(jsonIn, cfg, types):
+def cleanJson(jsonOriginal, cfg, types):
+    
+    jsonIn = deepcopy(jsonOriginal)
+    
     tweetData = cfg['TweetData']
     userData = cfg['UserData']
     keepUser = len(userData) > 0 and 'user' not in tweetData
@@ -295,6 +390,7 @@ def cleanJson(jsonIn, cfg, types):
     toDelete = []
     
     jsonToDictFix(jsonIn)
+    jsonIn = uniqueJson(jsonIn)
     
     if len(tweetData + userData) > 0:
         for row in range(len(jsonIn)):
@@ -307,11 +403,9 @@ def cleanJson(jsonIn, cfg, types):
                 for key in userJson.keys():
                     tempJson['user_' + key] = userJson[key]
             jsonIn[row] = tempJson
-            if type(types[row]) is str:
-                jsonIn[row]['tweetType'] = types[row]
-            elif type(types[row]) is dict:
-                for key in types[row].keys():
-                    jsonIn[row][key] = types[row][key]        
+            for key in types[row].keys():
+                    jsonIn[row][key] = types[row][key]     
+    return jsonIn 
         
         
 #Loads configuration from file config

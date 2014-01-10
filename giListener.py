@@ -51,14 +51,15 @@ class giSeeker():
         fileOut.close()
         
         
-        if self.runDay != localTime(datetime.date.today(),self.cfg).strftime("%A %d"):
+        if self.runDay != localTime(datetime.datetime.today(),self.cfg).strftime("%A %d"):
+            print "DEBOO", self.runDay, localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
             print "End of day noted, updating word banks & reformating past filtered output"
             lists = updateWordBanks(directory, self.cfg)
             reformatOld(directory, lists, self.cfg)
             self.conditions = lists['conditions']
             self.qualifiers = lists['qualifiers']
             self.exclusions = lists['exclusions']
-            self.runDay = localTime(datetime.date.today(),self.cfg).strftime("%A %d")
+            self.runDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
             
         
         
@@ -86,7 +87,7 @@ class giSeeker():
                         self.irrelevantCount)        
        
         if self.cfg['TweetData'] != 'all':
-            cleanJson(meaningful,self.cfg,self.tweetTypes)
+            meaningful = cleanJson(meaningful,self.cfg,self.tweetTypes)
             
         #timeStamp = datetime.date.today().strftime("%A")
         timeStamp = self.startTime
@@ -206,7 +207,7 @@ class giSeeker():
                 #print json.loads(status.json).keys()
                 percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
                 
-                geoInfo = isInBox(self.cfg,status.coordinates)
+                geoInfo = isInBox(self.cfg,status)
                 tweetLocalTime = outTime(localTime(status,self.cfg))
                 inBox += geoInfo['inBox']
                 
@@ -317,7 +318,7 @@ class giListener(tweepy.StreamListener):
         self.jsonExcluded = []
         self.tweetTypes = []
         self.startTime = localTime(datetime.datetime.now(),self.cfg).strftime(timeArgs)
-        self.startDay = localTime(datetime.date.today(),self.cfg).strftime("%A")
+        self.startDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A")
 
     
     def saveTweets(self):
@@ -331,9 +332,8 @@ class giListener(tweepy.StreamListener):
         meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
         
         if self.cfg['TweetData'] != 'all':
-            cleanJson(meaningful,self.cfg,self.tweetTypes)
+            meaningful = cleanJson(meaningful,self.cfg,self.tweetTypes)
             
-        #timeStamp = datetime.date.today().strftime("%A")
         timeStamp = self.startTime
         
         if self.cfg['KeepRaw']:
@@ -348,7 +348,7 @@ class giListener(tweepy.StreamListener):
     
     def on_status(self, status):
         try:
-            if self.startDay != localTime(datetime.date.today(),self.cfg).strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
+            if self.startDay != localTime(datetime.datetime.today(),self.cfg).strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
                 giListener.saveTweets(self)
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
