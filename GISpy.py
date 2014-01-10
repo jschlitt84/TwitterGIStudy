@@ -165,6 +165,7 @@ def openWhenReady(directory, mode):
 
 def isInBox(cfg,status):
     gCoder = geocoders.GeocoderDotUS()
+    #Yahoo API key needed for best results
     if type(status) is dict:
         userLoc = status['user']['location']
         coordinates = status['coordinates']
@@ -179,7 +180,6 @@ def isInBox(cfg,status):
     elif (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None":
         if userLoc.startswith("\u00dcT:"):
             coordinates = str(userLoc).replace("\u00dcT: ",'').split(',')
-            print "DEBOOO1", coordinates
             coordinates[0],coordinates[1] = int(coordinates[0]),int(coordinates[1])
             hasCoords = True
         else:
@@ -193,8 +193,10 @@ def isInBox(cfg,status):
         return {'inBox':False,'text':'NoCoords','place':'NaN'}
         
     if hasCoords:
-        print "DEBOOO2", coordinates, str(coordinates[1])+','+str(coordinates[0])
-        place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+        try:
+            place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+        except:
+            place = "NaN"
     
     if place == None or place == 'None':
         place = 'NaN'
