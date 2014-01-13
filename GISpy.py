@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json, csv
 import random
 import datetime,time
@@ -164,10 +165,12 @@ def openWhenReady(directory, mode):
 #http://code.google.com/p/geopy/wiki/GettingStarted
 
 def isInBox(cfg,status):
-    #gCoder = geocoders.GeocoderDotUS()
+    gCoder = geocoders.GoogleV3()
     hasCoords = False
+    hasPlace = False
+    coordsWork = False
     place = 'Nan'
-    #Yahoo API key needed for best results
+
     if type(status) is dict:
         userLoc = status['user']['location']
         coordinates = status['coordinates']
@@ -177,40 +180,50 @@ def isInBox(cfg,status):
     else:
         userLoc = status.user.location
         coordinates = status.coordinates
-        print coordinates, type(coordinates)
         if type(coordinates) is dict:
             coordinates = coordinates['coordinates']
             hasCoords = True
+    
+    if type(coordinates) is list:
+        coordsWork = len(coordinates) == 2
             
-    if (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None":
-        if userLoc.startswith("\u00dcT:"):
-            coordinates = str(userLoc).replace("\u00dcT: ",'').split(',')
-            coordinates[0],coordinates[1] = int(coordinates[0]),int(coordinates[1])
-            hasCoords = True
-        else:
+    if (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None" and not coordsWork:
+        if ':' in userLoc:
+            coordinates = str(userLoc[userLoc.index(':')+1:]).split(',')[::-1]
+            try:
+                coordinates[0],coordinates[1] = float(coordinates[0]),float(coordinates[1])
+                hasCoords = True
+            except:
+                None
+        if not hasCoords:
             #lookup coords by location name
             try:
-                #place, (lat, lng) = gCoder.geocode(str(userLoc))  
-                pos = [lng,lat]
+                userLoc = str(userLoc).replace('Va','Virginia')
+                place, (lat, lng) = gCoder.geocode(str(userLoc))
+                time.sleep(.15); coordinates = [lng,lat] 
+                hasPlace = True
+                hasCoords = True
             except:
                 return {'inBox':False,'text':'NoCoords','place':'NaN'}
-    else: 
+   
+    if not hasCoords:
         return {'inBox':False,'text':'NoCoords','place':'NaN'}
-        
-    if hasCoords:
-        try:
-            #place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
-            None
-        except:
-            None
+    else:
+        status['coordinates'] = coordinates
+        if not hasPlace:
+            try:
+                place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+                time.sleep(.15)
+            except:
+                None
     
     if place == None or place == 'None':
         place = 'NaN'
         
     try:
-        if sorted([cfg['Lat1'],cfg['Lat2'],pos[1]])[1] != pos[1]:
+        if sorted([cfg['Lat1'],cfg['Lat2'],coordinates[1]])[1] != coordinates[1]:
             return {'inBox':False,'text':'HasCoords','place':place}
-        if sorted([cfg['Lon1'],cfg['Lon2'],pos[0]])[1] != pos[0]:
+        if sorted([cfg['Lon1'],cfg['Lon2'],coordinates[0]])[1] != coordinates[0]:
             return {'inBox':False,'text':'HasCoords','place':place}
         return {'inBox':True,'text':'InBox','place':place}
     except:
