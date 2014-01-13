@@ -1,51 +1,22 @@
-+import json, csv
+import json, csv
 
-+
+x="""[{"longitude":"-73.689070","latitude":"40.718000"},
+  {"longitude":"-73.688400","latitude":"40.715990"},
+  {"longitude":"-73.688340","latitude":"40.715790"},
+  {"longitude":"-73.688370","latitude":"40.715500"},
+  {"longitude":"-73.688490","latitude":"40.715030"},
+  {"longitude":"-73.688810","latitude":"40.714370"},
+  {"longitude":"-73.688980","latitude":"40.714080"},
+  {"longitude":"-73.689350","latitude":"40.713390"},
+  {"longitude":"-73.689530","latitude":"40.712800"},
+  {"longitude":"-73.689740","latitude":"40.712050"},
+  {"longitude":"-73.689820","latitude":"40.711810"},
+  {"longitude":"-73.689930","latitude":"40.711380"},
+  {"longitude":"-73.690110","latitude":"40.710710"}]"""
 
-+    x="""[
+x = json.loads(x)
+f = csv.writer(open("test.csv", "wb+"))
+f.writerow(["longitude", "latitude"])
 
-+        {"longitude":"-73.689070","latitude":"40.718000"},
-
-+        {"longitude":"-73.688400","latitude":"40.715990"},
-
-+        {"longitude":"-73.688340","latitude":"40.715790"},
-
-+        {"longitude":"-73.688370","latitude":"40.715500"},
-
-+        {"longitude":"-73.688490","latitude":"40.715030"},
-
-+        {"longitude":"-73.688810","latitude":"40.714370"},
-
-+        {"longitude":"-73.688980","latitude":"40.714080"},
-
-+        {"longitude":"-73.689350","latitude":"40.713390"},
-
-+        {"longitude":"-73.689530","latitude":"40.712800"},
-
-+        {"longitude":"-73.689740","latitude":"40.712050"},
-
-+        {"longitude":"-73.689820","latitude":"40.711810"},
-
-+        {"longitude":"-73.689930","latitude":"40.711380"},
-
-+        {"longitude":"-73.690110","latitude":"40.710710"}
-
-+    ]"""
-
-+
-
-+    x = json.loads(x)
-
-+
-
-+    f = csv.writer(open("test.csv", "wb+"))
-
-+
-
-+    f.writerow(["longitude", "latitude"])
-
-+
-
-+    for row in x:
-
-+        f.writerow( [row['longitude'], row['latitude']] )
+for row in x:
+  f.writerow( [row['longitude'], row['latitude']] )
