@@ -74,25 +74,28 @@ def getLogins(directory, files):
         if directory == "null":
             directory = ''
         print "Loading login file:", directory + fileName
-        fileIn = open(directory+fileName)
-        content = fileIn.readlines()
-        for item in content:
-            if ' = ' in item:
-                while '  ' in item:
-                    item = item.replace('  ',' ')
-                while '\n' in item:
-                    item = item.replace('\n','')
-                line = item.split(' = ')
-                try:
-                    line[1] = float(line[1])
-                    if line[1] == int(line[1]):
-                        line[1] = int(line[1])
-                except:
-                    None
-                params[line[0]] = line[1]
-        #for key,item in params.iteritems():
-        #    print '\t*', key,':', item
-        logins[fileName] = deepcopy(params)
+        try:
+            fileIn = open(directory+fileName)
+            content = fileIn.readlines()
+            for item in content:
+                if ' = ' in item:
+                    while '  ' in item:
+                        item = item.replace('  ',' ')
+                    while '\n' in item:
+                        item = item.replace('\n','')
+                    line = item.split(' = ')
+                    try:
+                        line[1] = float(line[1])
+                        if line[1] == int(line[1]):
+                            line[1] = int(line[1])
+                    except:
+                        None
+                    params[line[0]] = line[1]
+            #for key,item in params.iteritems():
+            #    print '\t*', key,':', item
+            logins[fileName] = deepcopy(params)
+        except:
+            print "\tlogin file not found"
     print
     return logins
     
@@ -346,10 +349,16 @@ def reformatOld(directory, lists, cfg):
                 jsonToDictFix(content)
             
             for tweet in content:
+                tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
                     geoType = isInBox(cfg,tweet)
-                    types.append({'tweetType':tweetType,'geoType':geoType['text'],'localTime':outTime(localTime(tweet,cfg))})
+                    types.append({'tweetType':tweetType,
+                        'geoType':geoType['text'],
+                        'lat':geoType['lat'],
+                        'lon':geoType['lon'],
+                        'fineLocation':geoType['trueLoc'],
+                        'localTime':outTime(localTime(tweet,cfg))})
                     filteredContent.append(tweet)
             
             collectedContent += filteredContent

@@ -12,5 +12,5 @@ Exclusions = exclusions
 OutDir = output/
 TimeOffset = -5
 FileName = GIStudy
-TweetData = text, id, coordinates, created_at
-UserData =  screen_name, lang, location
+TweetData = text, id, created_at
+UserData =  screen_name, lang

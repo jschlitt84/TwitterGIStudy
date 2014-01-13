@@ -207,17 +207,17 @@ class giSeeker():
                 #print json.loads(status.json).keys()
                 percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
                 
-                geoInfo = isInBox(self.cfg,status)
+                geoType = isInBox(self.cfg,status)
                 tweetLocalTime = outTime(localTime(status,self.cfg))
-                inBox += geoInfo['inBox']
+                inBox += geoType['inBox']
                 
-                loginInfo = "\033[94m%s:%s:%s%%\033[0m" % (self.name,geoInfo['text'],percentFilled)
+                loginInfo = "\033[94m%s:%s:%s%%\033[0m" % (self.name,geoType['text'],percentFilled)
                 if tweetType == "accepted":
                     print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                                 status.author.screen_name, 
                                 tweetLocalTime, 
                                 status.source,)
-                    if geoInfo['inBox']:
+                    if geoType['inBox']:
                         mappable += 1
                     self.tweetCount += self.cfg['KeepAccepted']
                     self.acceptedCount += 1
@@ -244,8 +244,12 @@ class giSeeker():
                     self.irrelevantCount += 1
                 if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
                     self.jsonRaw.append(status.json)
-                    self.tweetTypes.append({'geoType':geoInfo,'tweetType':tweetType,'localTime':tweetLocalTime}) 
-            
+                    self.tweetTypes.append({'tweetType':tweetType,
+                        'geoType':geoType['text'],
+                        'lat':geoType['lat'],
+                        'lon':geoType['lon'],
+                        'fineLocation':geoType['trueLoc'],
+                        'localTime':outTime(localTime(status,self.cfg))})
             
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
