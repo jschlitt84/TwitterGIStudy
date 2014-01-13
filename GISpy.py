@@ -204,12 +204,12 @@ def isInBox(cfg,status):
                 hasPlace = True
                 hasCoords = True
             except:
-                return {'inBox':False,'text':'NoCoords','place':'NaN'}
+                return {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
    
     if not hasCoords:
-        return {'inBox':False,'text':'NoCoords','place':'NaN'}
+        return {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
     else:
-        status['coordinates'] = coordinates
+        #status['coordinates'] = coordinates
         if not hasPlace:
             try:
                 place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
@@ -222,12 +222,12 @@ def isInBox(cfg,status):
         
     try:
         if sorted([cfg['Lat1'],cfg['Lat2'],coordinates[1]])[1] != coordinates[1]:
-            return {'inBox':False,'text':'HasCoords','place':place}
+            return {'inBox':False,'text':'HasCoords','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
         if sorted([cfg['Lon1'],cfg['Lon2'],coordinates[0]])[1] != coordinates[0]:
-            return {'inBox':False,'text':'HasCoords','place':place}
-        return {'inBox':True,'text':'InBox','place':place}
+            return {'inBox':False,'text':'HasCoords','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+        return {'inBox':True,'text':'InBox','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
     except:
-        return {'inBox':False,'text':'Error','place':place}
+        return {'inBox':False,'text':'Error','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
 
 
 # Finds center and radius in miles of circle than covers lat lon box
