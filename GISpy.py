@@ -334,13 +334,12 @@ def reformatOld(directory, lists, cfg):
             lists = updateWordBanks(homeDirectory, cfg)
         
         collectedContent = []
-        collectedTypes = []
+        collectedTypes = {}
             
         fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
         for fileName in fileList:
             inFile = open(directory+fileName)
             content = json.load(inFile)
-            types = []
             filteredContent = []
             
             print "Reclassifying", fileName, "by updated lists"
@@ -353,18 +352,17 @@ def reformatOld(directory, lists, cfg):
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
                     geoType = isInBox(cfg,tweet)
-                    types.append({'tweetType':tweetType,
+                    collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
                         'geoType':geoType['text'],
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
                         'fineLocation':geoType['trueLoc'],
-                        'localTime':outTime(localTime(tweet,cfg))})
+                        'localTime':outTime(localTime(tweet,cfg))}
                     filteredContent.append(tweet)
             
-            collectedContent += filteredContent
-            collectedTypes += types                    
+            collectedContent += filteredContent                  
 
-            filteredContent = cleanJson(filteredContent,cfg,types)
+            filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
             outName = fileName.replace('Raw','FilteredTweets')
             print "\tSaving file as", outName
             with open(directory+outName, 'w') as outFile:
@@ -421,8 +419,6 @@ def cleanJson(jsonOriginal, cfg, types):
     tweetData = cfg['TweetData']
     userData = cfg['UserData']
     keepUser = len(userData) > 0 and 'user' not in tweetData
-    userKeys = []
-    toDelete = []
     
     jsonToDictFix(jsonIn)
     jsonIn = uniqueJson(jsonIn)
@@ -430,6 +426,7 @@ def cleanJson(jsonOriginal, cfg, types):
     if len(tweetData + userData) > 0:
         for row in range(len(jsonIn)):
             loaded = jsonIn[row]
+            ID = str(loaded['id'])
             loadedUser = loaded['user']
             del loaded['user']
             tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
@@ -438,8 +435,8 @@ def cleanJson(jsonOriginal, cfg, types):
                 for key in userJson.keys():
                     tempJson['user_' + key] = userJson[key]
             jsonIn[row] = tempJson
-            for key in types[row].keys():
-                    jsonIn[row][key] = types[row][key]     
+            for key in types[ID].keys():
+                jsonIn[row][key] = types[ID][key]     
     return jsonIn 
         
         

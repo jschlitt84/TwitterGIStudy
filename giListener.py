@@ -17,7 +17,7 @@ class giSeeker():
         self.name = name
         self.exclusions = exclusions
         self.cfg = cfg
-        self.searchDelay = 3000
+        self.searchDelay = 600
         self.testSpace = testSpace
         self.runDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
         self.lastWrite = 'null'
@@ -74,7 +74,7 @@ class giSeeker():
         self.jsonAccepted = []
         self.jsonPartial = []
         self.jsonExcluded = []
-        self.tweetTypes = []
+        self.tweetTypes = {}
         
     
     def saveTweets(self):
@@ -244,12 +244,12 @@ class giSeeker():
                     self.irrelevantCount += 1
                 if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
                     self.jsonRaw.append(status.json)
-                    self.tweetTypes.append({'tweetType':tweetType,
+                    self.tweetTypes[str(status.id)] = {'tweetType':tweetType,
                         'geoType':geoType['text'],
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
                         'fineLocation':geoType['trueLoc'],
-                        'localTime':outTime(localTime(status,self.cfg))})
+                        'localTime':outTime(localTime(status,self.cfg))}
             
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
@@ -320,7 +320,7 @@ class giListener(tweepy.StreamListener):
         self.jsonAccepted = []
         self.jsonPartial = []
         self.jsonExcluded = []
-        self.tweetTypes = []
+        self.tweetTypes = {}
         self.startTime = localTime(datetime.datetime.now(),self.cfg).strftime(timeArgs)
         self.startDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A")
 
@@ -356,6 +356,7 @@ class giListener(tweepy.StreamListener):
                 giListener.saveTweets(self)
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
+            geoType = isInBox(self.cfg,status)
             #print json.loads(status.json).keys()
             percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
             loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,percentFilled)
@@ -390,7 +391,12 @@ class giListener(tweepy.StreamListener):
                 self.irrelevantCount += 1
             if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
                 self.jsonRaw.append(status.json)
-                self.tweetTypes.append(tweetType)               
+                self.tweetTypes[str(status.id)] = {'tweetType':tweetType,
+                        'geoType':geoType['text'],
+                        'lat':geoType['lat'],
+                        'lon':geoType['lon'],
+                        'fineLocation':geoType['trueLoc'],
+                        'localTime':outTime(localTime(status,self.cfg))}             
                 
         except Exception, e:
             print "Encountered exception:", e
