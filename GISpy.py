@@ -84,7 +84,10 @@ def getLogins(directory, files):
             directory = ''
         print "Loading login file:", directory + fileName
         try:
-            fileIn = open(directory+fileName)
+            try: 
+                fileIn = open(directory+'/logins/' + fileName)
+            except:
+                fileIn = open(directory+fileName)
             content = fileIn.readlines()
             for item in content:
                 if ' = ' in item:
@@ -111,10 +114,16 @@ def getLogins(directory, files):
 
 def getWords(directory, name):
     """Loads & cleans phrases from text file"""
-    with open (directory+name, 'r') as fileIn:
-        text=fileIn.read().lower()
-        while '  ' in text:
-            text = text.replace('  ',' ')
+    try:
+        with open (directory+'/lists/'+name, 'r') as fileIn:
+            text=fileIn.read().lower()
+            while '  ' in text:
+                text = text.replace('  ',' ')
+    except:
+        with open (directory+name, 'r') as fileIn:
+            text=fileIn.read().lower()
+            while '  ' in text:
+                text = text.replace('  ',' ')
     data = text.split('\n')
     toDelete = []
     for pos in range(len(data)):
