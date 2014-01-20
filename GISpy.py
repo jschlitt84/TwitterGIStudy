@@ -5,6 +5,7 @@ import datetime,time
 import os, shutil
 import pandas as pd
 import unicodedata
+import tweepy
 
 from copy import deepcopy
 from geopy.distance import great_circle
@@ -13,6 +14,14 @@ from dateutil import parser
 
 #timeArgs = "%A_%m-%d-%y_%H-%M-%S"
 timeArgs = '%a %d %b %Y %H:%M:%S'
+
+
+def getAuth(login):
+    """Return authorization object"""
+    auth1 = tweepy.auth.OAuthHandler(login['consumerKey'],login['consumerSecret'])
+    auth1.set_access_token(login['accessToken'],login['accessTokenSecret'])
+    api = tweepy.API(auth1)
+    return {'auth':auth1,'api':api}
 
 def stripUnicode(text):
     if text == None:

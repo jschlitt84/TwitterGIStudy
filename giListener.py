@@ -17,7 +17,7 @@ class giSeeker():
         self.name = name
         self.exclusions = exclusions
         self.cfg = cfg
-        self.searchDelay = 600
+        self.searchDelay = 60
         self.testSpace = testSpace
         self.runDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
         self.lastWrite = 'null'
@@ -156,36 +156,52 @@ class giSeeker():
         while True:
             collected = []
             for query in self.queries:
+                loggedIn = True
+                ranSearch = False
+                while not loggedIn or not ranSearch:
+                    try:
+                        #Issue of stream pagination currently unresolved
+                        #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
+                        
+                        #Method 1: Unlimited backstream, may have overlap or rate limiting issues
+                        """for tweet in tweepy.Cursor(self.api.search,q=query,
+                            geocode= self.geo,
+                            since_id= str(0),
+                            result_type="recent").items():
+                            
+                            print tweet.text
+                            collected.append(tweet)
+                            
+                        for item in collected:
+                            print item.text, item.coordinates, item.geo"""
+        
+                        #Method 2: Since id stream, may miss if keyword set yields over 100 new results
+                        collected += self.api.search(q = query, 
+                                                since_id = self.lastTweet,  
+                                                geocode = self.geo,
+                                                result_type="recent",
+                                                count = 100)
+                        ranSearch = True
+                    except:
+                        loggedIn = False
+                        while not loggedIn:
+                            print "Login error, will sleep 60 seconds and attempt reconnection"
+                            time.sleep(60)
+                            try:
+                                self.api = getAuth(self.cfg['_login_'])['api']
+                                print "Login successfull"
+                                loggedIn =  True
+                            except:
+                                print "Login unsuccessfull\n"
                 
-                #Issue of stream pagination currently unresolved
-                #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
-                
-                #Method 1: Unlimited backstream, may have overlap or rate limiting issues
-                """for tweet in tweepy.Cursor(self.api.search,q=query,
-                    geocode= self.geo,
-                    since_id= str(0),
-                    result_type="recent").items():
-                    
-                    print tweet.text
-                    collected.append(tweet)
-                    
-                for item in collected:
-                    print item.text, item.coordinates, item.geo"""
-
-                #Method 2: Since id stream, may miss if keyword set yields over 100 new results
-                collected += self.api.search(q = query, 
-                                        since_id = self.lastTweet,  
-                                        geocode = self.geo,
-                                        result_type="recent",
-                                        count = 100)
-               
             idList = set()            
             inBox = mappable = 0
             
             hasResults = len(collected) != 0
-            collected = uniqueJson(collected)
+                
             
             if hasResults:
+                collected = uniqueJson(collected)
                 self.startDay = localTime(collected[0].created_at,self.cfg).strftime("%A %d")
                 self.startTime = localTime(collected[0].created_at,self.cfg).strftime(timeArgs)
                 if self.lastWrite != 'null' and self.lastWrite != self.startDay:

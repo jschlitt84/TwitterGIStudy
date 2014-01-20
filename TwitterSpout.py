@@ -32,15 +32,6 @@ def stripWords(text):
     listed = ''.join((c if (c.isalnum()) else ' ') for c in text).split()
     return listed
     
-    
-
-def getAuth(login):
-    """Return authorization object"""
-    auth1 = tweepy.auth.OAuthHandler(login['consumerKey'],login['consumerSecret'])
-    auth1.set_access_token(login['accessToken'],login['accessTokenSecret'])
-    api = tweepy.API(auth1)
-    return {'auth':auth1,'api':api}
-
 
 
 def postTweet(api,text,image):
@@ -138,7 +129,8 @@ def main():
             except:
                 None
  
-    login = logins[userLogin]    
+    login = logins[userLogin]
+    cfg['_login_'] = login    
     temp = getAuth(login)
     login['auth'] = temp['auth']
     login['api'] = temp['api']
