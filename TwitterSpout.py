@@ -90,6 +90,7 @@ def getViaStream(login, cfg, conditions, qualifiers, exclusions):
 
 
 def main():
+    usingGDoc = False
     try: 
         userLogin = sys.argv[2]
         print "Login '%s' passed explicitly" % (userLogin)
@@ -97,11 +98,15 @@ def main():
         userLogin = 'null'
     try:
         temp = sys.argv[1]
-        print "\nTaking user parameters"
-        directory = '/'.join(temp.split('/')[:-1])
-        configFile = temp.split('/')[-1]
-        if directory == '':
-            directory = os.getcwd() + '/'
+        if userLogin.startswith('http'):
+            usingGDoc = True
+            print "Preparing GDI Remote Access Loader"
+        else:
+            print "\nTaking user parameters"
+            directory = '/'.join(temp.split('/')[:-1])
+            configFile = temp.split('/')[-1]
+            if directory == '':
+                directory = os.getcwd() + '/'
     except:
         print "Taking default parameters"
         directory = os.getcwd() + '/'
