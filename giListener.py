@@ -81,33 +81,36 @@ class giSeeker():
     def saveTweets(self):
         meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
         
-        print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, %s partial matches, and %s irrelevant" % (len(meaningful),
+        if len(meaningful)>1:
+            print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, %s partial matches, and %s irrelevant" % (len(meaningful),
                         self.acceptedCount,
                         self.excludedCount,
                         self.partialCount,
                         self.irrelevantCount)        
        
-        if self.cfg['TweetData'] != 'all':
-            meaningful = cleanJson(meaningful,self.cfg,self.tweetTypes)
+            if self.cfg['TweetData'] != 'all':
+                meaningful = cleanJson(meaningful,self.cfg,self.tweetTypes)
+                
+            #timeStamp = datetime.date.today().strftime("%A")
+            timeStamp = self.startTime
+            self.lastWrite = self.startDay
             
-        #timeStamp = datetime.date.today().strftime("%A")
-        timeStamp = self.startTime
-        self.lastWrite = self.startDay
-        
-        if self.cfg['KeepRaw']:
-            with open(self.pathOut+'Raw_'+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
-                json.dump(self.jsonRaw,outFile)
+            if self.cfg['KeepRaw']:
+                with open(self.pathOut+'Raw_'+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
+                    json.dump(self.jsonRaw,outFile)
+                outFile.close()
+    
+            with open(self.pathOut+'FilteredTweets_'+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
+                json.dump(meaningful,outFile)
             outFile.close()
-
-        with open(self.pathOut+'FilteredTweets_'+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
-            json.dump(meaningful,outFile)
-        outFile.close()
-        
-        print 'Json text dump complete, buffering....'    
-        time.sleep(1)
-        
-        
-        giSeeker.flushTweets(self)
+            
+            print 'Json text dump complete, buffering....'    
+            time.sleep(1)
+            
+            
+            giSeeker.flushTweets(self)
+        else:
+            print "No tweets found for date"
 
 
 
