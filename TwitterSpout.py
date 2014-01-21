@@ -98,8 +98,9 @@ def main():
         userLogin = 'null'
     try:
         temp = sys.argv[1]
-        if userLogin.startswith('http'):
+        if temp.startswith('http'):
             usingGDoc = True
+            gDocURL = temp
             print "Preparing GDI Remote Access Loader"
         else:
             print "\nTaking user parameters"
@@ -112,29 +113,41 @@ def main():
         directory = os.getcwd() + '/'
         configFile = 'config'
         
-    print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
-    cfg = getConfig(directory+configFile)
-    cfg['directory'] = directory
-    logins = getLogins(directory, cfg['Logins'])
-    
-    lists = updateWordBanks(directory, cfg)
-    reformatOld(directory,lists,cfg) 
-    
-    print "\nPlease choose login number:"
-    if userLogin == 'null':
-        listed = sorted(logins.keys()); i = 0
-        for key in listed:
-            print "\t%s - %s - %s" % (i,key,logins[key]['description'])
-            i += 1
-        while True:
-            try:
-                selection = int(raw_input('\n:'))
-                userLogin = listed[selection]
-                break
-            except:
-                None
+    if usingGDoc:
+        directory = os.getcwd() + '/'
+        temp = giSpyGDILoad(gDocURL,directory)
+        cfg = temp['config']
+        lists = temp['lists']
+        print temp['login']
+        login = getLogins(directory,[temp['login']])[temp['login']]
+        cfg['directory'] = directory
+        reformatOld(directory,lists,cfg)
+        
+    else: 
+        print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
+        cfg = getConfig(directory+configFile)
+        cfg['directory'] = directory
+        logins = getLogins(directory, cfg['Logins'])
+        lists = updateWordBanks(directory, cfg)
+        
+        reformatOld(directory,lists,cfg) 
+        
+        print "\nPlease choose login number:"
+        if userLogin == 'null':
+            listed = sorted(logins.keys()); i = 0
+            for key in listed:
+                print "\t%s - %s - %s" % (i,key,logins[key]['description'])
+                i += 1
+            while True:
+                try:
+                    selection = int(raw_input('\n:'))
+                    userLogin = listed[selection]
+                    break
+                except:
+                    None
  
-    login = logins[userLogin]
+        login = logins[userLogin]
+    
     cfg['_login_'] = login    
     temp = getAuth(login)
     login['auth'] = temp['auth']

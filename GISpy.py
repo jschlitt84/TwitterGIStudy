@@ -7,6 +7,8 @@ import pandas as pd
 import unicodedata
 import tweepy
 
+import gDocsImport as gd
+
 from copy import deepcopy
 from geopy.distance import great_circle
 from geopy import geocoders
@@ -15,6 +17,79 @@ from dateutil import parser
 #timeArgs = "%A_%m-%d-%y_%H-%M-%S"
 timeArgs = '%a %d %b %Y %H:%M:%S'
 
+gdiEmail = 'Subscriber Email,CC Email'
+gdiParams = 'Param Name,Param Key'
+gdiLists = 'Conditions,Qualifiers,Exclusions'
+
+
+def loadGDIAccount(gDocURL,directory):
+    fileIn = open(directory+'gdiAccounts')
+    content = fileIn.readlines()
+    found = False
+    for line in content:
+        if gDocURL in line:
+            urlLine = line
+            found = True
+            break
+    if not found:
+        print "Error: GDoc URL", gDocURL, "not found"
+        quit()
+    experimentName = urlLine.split('.')[0].replace(' ','')
+    
+    found = False
+    for line in content:
+        if experimentName+'.login' in line:
+            loginLine = line
+            found = True
+            break
+    if not found:
+        login = 'login5'
+    else:
+        login =  loginLine.split(' = ')[1].replace(' ','').replace('\n','')
+    return {'name':experimentName,'login':login}
+        
+    
+    
+
+def giSpyGDILoad(gDocURL,directory):
+    gdi = {}
+    print "Loading user account info from local directory"
+    account = loadGDIAccount(gDocURL,directory)
+    print "DEBOO", account
+    
+    print "Loading email lists from local directory"
+    emails = gd.getLine('null', 'null', gDocURL, gdiEmail, False, [])
+    gdi['Email'] = emails[0]
+    gdi['CC'] = emails[1]
+    gdi['URL'] = gDocURL
+    
+    print "Loading word lists from local directory"
+    config = gd.getScript('null', 'null', gDocURL, gdiParams, gdiLists, "default", False, [])
+    cfg = getConfig(config)
+    cfg['OutDir'] = account['name'] + '/'
+    cfg['FileName'] = account['name']
+    cfg['Logins'] = [account['login']]
+    cfg['GDI'] = gdi
+    cfg['UseGDI'] = True
+    
+    uglyLists = gd.getScript('null', 'null', gDocURL, gdiLists, -1, "default", False, [])
+    conditions = []
+    qualifiers = set()
+    exclusions = set()
+    for pos in range(len(uglyLists)):
+        row = uglyLists[pos]
+        if len(str(row[0])) != 0:
+            conditions.append(row[0])
+        if len(str(row[1])) != 0:
+            qualifiers.add(row[0])
+        if len(str(row[2])) != 0:
+            exclusions.add(row[0])
+    lists = {'conditions':conditions,'qualifiers':qualifiers,'exclusions':exclusions}
+    return {'lists':lists,'config':cfg,'login':account['login']}
+    
+    
+    
+    
 
 def getAuth(login):
     """Return authorization object"""
@@ -65,6 +140,8 @@ def localTime(timeContainer, offset):
 def uniqueJson(rawResults):
     """ returns a tweet json filtered for unique IDS and sorted"""
     collected = rawResults[:]
+    if len(collected) == 0:
+        return []
     if type(collected[0] ) is dict:
         collected = dict([(tweet['id'], tweet) for tweet in collected]).values()
         collected = sorted(collected, key=lambda k: k['id'])
@@ -145,10 +222,11 @@ def getWords(directory, name):
 
 #Pulls word lists from local directory
 def updateWordBanks(directory, cfg): 
+    useGDI = False
     try:
-        if cfg.has_key('UsageMode'):
-            if cfg['UsageMode'] == 'gdoc':
-                None
+        if cfg.has_key('UseGDI'):
+            if cfg['UseGDI']:
+                useGDI = True
         else:
             print "Attempting file update of local directory"
             os.system('git pull')
@@ -156,15 +234,19 @@ def updateWordBanks(directory, cfg):
     except:
         print "Unable to update list files via git"
     
-    print "Preparing to load updated list files\n"
-    conditions = getWords(directory, cfg['Conditions'])
-    print "\nLoaded Conditions:", conditions
-    qualifiers = set(getWords(directory, cfg['Qualifiers']))
-    print "\nLoaded Qualifiers:", qualifiers
-    exclusions = set(getWords(directory, cfg['Exclusions']))
-    print "\nLoaded Exclusions:", exclusions, '\n'
+    if useGDI:
+        print "Loading word lists via GDI\n"
+        return giSpyGDILoad(cfg['GDI']['URL'],directory)['lists']
+    else:
+        print "Preparing to load updated list files from text\n"
+        conditions = getWords(directory, cfg['Conditions'])
+        print "\nLoaded Conditions:", conditions
+        qualifiers = set(getWords(directory, cfg['Qualifiers']))
+        print "\nLoaded Qualifiers:", qualifiers
+        exclusions = set(getWords(directory, cfg['Exclusions']))
+        print "\nLoaded Exclusions:", exclusions, '\n'
     
-    return {'conditions':conditions,"qualifiers": qualifiers, 'exclusions': exclusions}
+        return {'conditions':conditions,"qualifiers": qualifiers, 'exclusions': exclusions}
     
 
 #Trys to open a file, if unable, waits five seconds and tries again
@@ -323,8 +405,8 @@ def reformatOld(directory, lists, cfg):
     keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
     
     print "Preparing to reformat from raw tweets..."
-    if 'output' not in directory.lower():
-        directory += 'output/' + cfg['Method'] + '/'
+    if cfg['OutDir'] not in directory.lower():
+        directory += cfg['OutDir'] + cfg['Method'] + '/'
     if not os.path.exists(directory):
         os.makedirs(directory)
         fileList = []
@@ -462,23 +544,36 @@ def cleanJson(jsonOriginal, cfg, types):
 def getConfig(directory):
     TweetData = 'all'
     UserData = {}
+    #default values
     params = {'StopTime':0,'StopCount':15,'KeepRaw':True,
                 'TweetData':TweetData, 'UserData':UserData,
                 'FileName':'filtered','OutDir':'outPut/',
                 'KeepAccepted':True,'KeepPartial':True,
-                'KeepExcluded':True, 'method':'stream'}
+                'KeepExcluded':True, 'method':'search',
+                'Logins':'NoLoginsFound','UseGDI':False}
     
-    if directory == "null":
-        directory = ''
-    fileIn = open(directory)
-    content = fileIn.readlines()
-    for item in content:
-        if ' = ' in item:
-            while '  ' in item:
-                item = item.replace('  ',' ')
-            while '\n' in item:
-                item = item.replace('\n','')
-            line = item.split(' = ')
+    if type(directory) is str:
+        if directory == "null":
+            directory = ''
+        fileIn = open(directory)
+        content = fileIn.readlines()
+        useGDI = False
+        for pos in range(len(content)):
+            item = content[pos]
+            if ' = ' in item:
+                while '  ' in item:
+                    item = item.replace('  ',' ')
+                while '\n' in item:
+                    item = item.replace('\n','')
+                line = item.split(' = ')
+            content[pos] = line
+
+    elif type(directory) is list:
+        content = directory
+        useGDI = True
+
+    for line in content:
+        if len(str(line[0])) != 0 and len(str(line[1])) != 0 and not str(line[0]).startswith('#'):
             try:
                 line[1] = float(line[1])
                 if line[1] == int(line[1]):
