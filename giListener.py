@@ -17,9 +17,9 @@ class giSeeker():
         self.name = name
         self.exclusions = exclusions
         self.cfg = cfg
-        self.searchDelay = 60
+        self.searchDelay = 600
         self.testSpace = testSpace
-        self.runDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
+        self.runDay = datetime.datetime.now().strftime("%A %d")
         self.lastWrite = 'null'
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
@@ -46,25 +46,40 @@ class giSeeker():
         fileOut = open(self.pathOut + 'checkbits','w')
         fileOut.write('DayFinished = True') 
         if not self.cfg['UseGDI']:
-            fileOut.write('ConditionsVersion = ' + time.ctime(os.stat(directory + self.cfg['Conditions']).st_mtime))
-            fileOut.write('QualifiersVersion = ' + time.ctime(os.stat(directory + self.cfg['Qualifiers']).st_mtime))
-            fileOut.write('ExclusionsVersion = ' + time.ctime(os.stat(directory + self.cfg['Exclusions']).st_mtime))
+            try:
+                fileOut.write('ConditionsVersion = ' + time.ctime(os.stat(directory + '/lists/' + self.cfg['Conditions']).st_mtime))
+                fileOut.write('QualifiersVersion = ' + time.ctime(os.stat(directory + '/lists/' + self.cfg['Qualifiers']).st_mtime))
+                fileOut.write('ExclusionsVersion = ' + time.ctime(os.stat(directory + '/lists/' + self.cfg['Exclusions']).st_mtime))
+            except:
+                fileOut.write('ConditionsVersion = ' + time.ctime(os.stat(directory + self.cfg['Conditions']).st_mtime))
+                fileOut.write('QualifiersVersion = ' + time.ctime(os.stat(directory + self.cfg['Qualifiers']).st_mtime))
+                fileOut.write('ExclusionsVersion = ' + time.ctime(os.stat(directory + self.cfg['Exclusions']).st_mtime))
         fileOut.close()
         
         
-        if self.runDay != localTime(datetime.datetime.today(),self.cfg).strftime("%A %d"):
-            print "DEBOO", self.runDay, localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
+        if self.runDay != datetime.datetime.now().strftime("%A %d"):
+            print "DEBOO", self.runDay, datetime.datetime.now().strftime("%A %d")
             print "End of day noted, updating word banks & reformating past filtered output"
-            lists = updateWordBanks(directory, self.cfg)
-            reformatOld(directory, lists, self.cfg)
+            self.runDay = datetime.datetime.now().strftime("%A %d")
+            
+            if self.cfg['UseGDI']:
+                temp = giSpyGDILoad(self.cfg['GDI']['URL'],self.directory)
+                lists = temp['lists']
+                self.cfg = temp['cfg']
+                self.cfg['_login_'] = temp['login']
+                reformatOld(directory, lists, self.cfg)
+                print "Sending results to GDI user"
+                sendCSV(self.cfg,directory)
+                
+            else:
+                lists = updateWordBanks(directory, self.cfg)
+                reformatOld(directory, lists, self.cfg)
+                
             self.conditions = lists['conditions']
             self.qualifiers = lists['qualifiers']
             self.exclusions = lists['exclusions']
-            self.runDay = localTime(datetime.datetime.today(),self.cfg).strftime("%A %d")
-            
-        
-        
-            
+
+    
     def flushTweets(self):
         self.tweetCount = 0
         self.acceptedCount = 0
@@ -80,7 +95,6 @@ class giSeeker():
     
     def saveTweets(self):
         meaningful =  self.jsonAccepted*self.cfg['KeepAccepted'] + self.jsonPartial*self.cfg['KeepPartial'] + self.jsonExcluded*self.cfg['KeepExcluded']
-        
         if len(meaningful)>1:
             print "\nDumping tweets to file, contains %s tweets with %s accepted, %s rejected, %s partial matches, and %s irrelevant" % (len(meaningful),
                         self.acceptedCount,
@@ -208,19 +222,19 @@ class giSeeker():
                 collected = uniqueJson(collected)
                 self.startDay = localTime(collected[0].created_at,self.cfg).strftime("%A %d")
                 self.startTime = localTime(collected[0].created_at,self.cfg).strftime(timeArgs)
-                if self.lastWrite != 'null' and self.lastWrite != self.startDay:
-                    print "Good morning! New day noted, preparing to save tweets."
-                    newDay = True
+            
+            #if self.lastWrite != 'null' and (self.lastWrite != self.startDay):
+            if self.runDay != datetime.datetime.now().strftime("%A %d"):
+                print "Good morning! New day noted, preparing to save tweets."
+                newDay = True
                                    
             for status in collected:
                 idList.add(int(status.id))
-                if self.startDay != localTime(status.created_at,self.cfg).strftime("%A %d") or self.tweetCount >= self.cfg['StopCount'] or newDay:
-                    newDay = False
+                if (self.startDay != localTime(status.created_at,self.cfg).strftime("%A %d") or self.tweetCount >= self.cfg['StopCount']) and not newDay:
                     giSeeker.saveTweets(self)
-                    if self.startDay != localTime(status.created_at,self.cfg).strftime("%A %d"):
-                        giSeeker.closeDay(self)
-                        self.startDay = localTime(status.created_at,self.cfg).strftime("%A %d")
-                        self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
+                    giSeeker.closeDay(self)
+                    self.startDay = localTime(status.created_at,self.cfg).strftime("%A %d")
+                    self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
                     
                 text = status.text.replace('\n',' ')
                 tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
@@ -271,6 +285,14 @@ class giSeeker():
                         'fineLocation':geoType['trueLoc'],
                         'localTime':outTime(localTime(status,self.cfg))}
             
+            if newDay:
+                giSeeker.saveTweets(self)
+                newDay = False
+                giSeeker.closeDay(self)
+                self.startDay = localTime(status.created_at,self.cfg).strftime("%A %d")
+                self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
+        
+            
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
                 if len(idList) > 1:
@@ -280,6 +302,7 @@ class giSeeker():
             else:
                 tweetsPerHour = 0
             print "\nFound %s tweets with %s geolocated and %s mappable hits, will sleep %s seconds until next search" % (len(idList),inBox, mappable,self.searchDelay)
+            print "\tInitial day:", self.runDay, "\tCurrent Day:", datetime.datetime.now().strftime("%A %d")
             if hasResults:
                 print "\tFirst tweet: %s\tLast tweet: %s\t\tTweets Per Hour: %s" % (collected[0].created_at, collected[-1].created_at, tweetsPerHour)
             time.sleep(self.searchDelay)
