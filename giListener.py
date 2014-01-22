@@ -18,9 +18,12 @@ class giSeeker():
         self.exclusions = exclusions
         self.cfg = cfg
         self.searchDelay = 600
+        if cfg['UseGDI']:
+            self.searchDelay = cfg['GDI']['Frequency']
         self.testSpace = testSpace
         self.runDay = datetime.datetime.now().strftime("%A %d")
         self.lastWrite = 'null'
+        self.startDay = 'null'
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
         self.geo = str(getGeo(cfg)).replace(' ','')[1:-1]+'mi'
@@ -42,7 +45,7 @@ class giSeeker():
     def closeDay(self):
         print "Closing tweet collection for", self.startDay, '\n'
         fileOut = openWhenReady(self.pathOut + 'checkbits','w')
-        directory = self.cfg['directory']
+        directory = self.cfg['Directory']
         fileOut = open(self.pathOut + 'checkbits','w')
         fileOut.write('DayFinished = True') 
         if not self.cfg['UseGDI']:
@@ -63,9 +66,9 @@ class giSeeker():
             self.runDay = datetime.datetime.now().strftime("%A %d")
             
             if self.cfg['UseGDI']:
-                temp = giSpyGDILoad(self.cfg['GDI']['URL'],self.directory)
+                temp = giSpyGDILoad(self.cfg['GDI']['URL'],self.cfg['Directory'])
                 lists = temp['lists']
-                self.cfg = temp['cfg']
+                self.cfg = temp['config']
                 self.cfg['_login_'] = temp['login']
                 reformatOld(directory, lists, self.cfg)
                 print "Sending results to GDI user"
@@ -289,8 +292,12 @@ class giSeeker():
                 giSeeker.saveTweets(self)
                 newDay = False
                 giSeeker.closeDay(self)
-                self.startDay = localTime(status.created_at,self.cfg).strftime("%A %d")
-                self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
+                try:
+                    self.startDay = localTime(status.created_at,self.cfg).strftime("%A %d")
+                    self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
+                except:
+                    self.startDay = 'null'
+                    self.startTime = 'null'
         
             
             if hasResults:
@@ -339,7 +346,7 @@ class giListener(tweepy.StreamListener):
             
     def closeDay(self):
         fileOut = openWhenReady(self.pathOut + 'checkbits','w')
-        directory = self.cfg['directory']
+        directory = self.cfg['Directory']
         fileOut = open(self.pathOut + 'checkbits','w')
         fileOut.write('DayFinished = True') 
         fileOut.write('ConditionsVersion = ' + time.ctime(os.stat(directory + self.cfg['Conditions']).st_mtime))

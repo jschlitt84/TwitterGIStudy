@@ -27,43 +27,62 @@ gdiEmail = 'Subscriber Email,CC Email'
 gdiParams = 'Param Name,Param Key'
 gdiLists = 'Conditions,Qualifiers,Exclusions'
 
+
+
 def sendCSV(cfg, directory):
     #Adapting method from http://kutuma.blogspot.com/2007/08/sending-emails-via-gmail-with-python.html
-    print "Preparing to send CSV file..."
-    """def mail(to, subject, text, attach):
-   msg = MIMEMultipart()
+    outName = cfg['FileName']+"_CollectedTweets"
+    attachment = cfg['OutDir']+outName+'.csv'
 
-   msg['From'] = gmail_user
-   msg['To'] = to
-   msg['Subject'] = subject
+    print "Preparing to send CSV file:", attachment
+        
+    msg = MIMEMultipart()
+    
+    msg['From'] = cfg['GDI']['UserName']
+    msg['To'] = cfg['GDI']['Email']
+    msg['Cc'] = cfg['GDI']['CC']
+    msg['Subject'] = cfg['FileName'] + ' collected tweets for ' + datetime.datetime.now().strftime("%A %d")
+    
+    text = "Please find csv spreadsheet file attached for study:" + cfg['FileName']
+    text += "\nParameters & configuration accessible at: " + cfg['GDI']['URL']
+    text += "\n\nPlease note changed parameters are updated after midnight & will not influence collection & parsing until the following day"
+    msg.attach(MIMEText(text))
+    
+    directory += cfg['OutDir'] + cfg['Method'] + '/'
+    outName = cfg['FileName']+"_CollectedTweets"
+    attachment = directory+outName+'.csv'
+    
+    
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload(open(attachment, 'rb').read())
+    Encoders.encode_base64(part)
+    
+    part.add_header('Content-Disposition',
+            'attachment; filename="%s"' % os.path.basename(attachment))
+    msg.attach(part)
+    
+    mailServer = smtplib.SMTP("smtp.gmail.com", 587)
+    mailServer.ehlo()
+    mailServer.starttls()
+    mailServer.ehlo()
+    mailServer.login(cfg['GDI']['UserName'], cfg['GDI']['Password'])
+    mailServer.sendmail(cfg['GDI']['UserName'], msg['To'], msg.as_string())
+    mailServer.close()
+    print "File sent succesfully!"
 
-   msg.attach(MIMEText(text))
-
-   part = MIMEBase('application', 'octet-stream')
-   part.set_payload(open(attach, 'rb').read())
-   Encoders.encode_base64(part)
-   part.add_header('Content-Disposition',
-           'attachment; filename="%s"' % os.path.basename(attach))
-   msg.attach(part)
-
-   mailServer = smtplib.SMTP("smtp.gmail.com", 587)
-   mailServer.ehlo()
-   mailServer.starttls()
-   mailServer.ehlo()
-   mailServer.login(gmail_user, gmail_pwd)
-   mailServer.sendmail(gmail_user, to, msg.as_string())
-   # Should be mailServer.quit(), but that crashes...
-   mailServer.close()
-
-    mail("some.person@some.address.com",
-   "Hello from python!",
-   "This is a email sent with python",
-   "my_picture.jpg")"""
     
 def loadGDIAccount(gDocURL,directory):
     fileIn = open(directory+'gdiAccounts')
     content = fileIn.readlines()
     found = False
+    _userName_ = _password_ = 'null'
+    
+    for line in content:
+        if line.lower().startswith('username'):
+            _userName_ = line.split(' = ')[1].replace(' ','').replace('\n','')
+        if line.lower().startswith('password'):
+            _password_ = line.split(' = ')[1].replace(' ','').replace('\n','')
+        
     for line in content:
         if gDocURL in line:
             urlLine = line
@@ -72,7 +91,20 @@ def loadGDIAccount(gDocURL,directory):
     if not found:
         print "Error: GDoc URL", gDocURL, "not found"
         quit()
+        
     experimentName = urlLine.split('.')[0].replace(' ','')
+    
+    found = False
+    for line in content:
+        if experimentName+'.file' in line:
+            fileLine = line
+            found = True
+            break
+    if not found:
+        print "Error, filename not specified"
+        quit()
+    else:
+        fileName = fileLine.split(' = ')[1].replace(' ','').replace('\n','')
     
     found = False
     for line in content:
@@ -84,7 +116,23 @@ def loadGDIAccount(gDocURL,directory):
         login = 'login5'
     else:
         login =  loginLine.split(' = ')[1].replace(' ','').replace('\n','')
-    return {'name':experimentName,'login':login}
+        
+    found = False
+    for line in content:
+        if experimentName+'.frequency' in line:
+            freqLine = line
+            found = True
+            break
+    if not found:
+        frequency = 900
+    else:
+        frequency = int(freqLine.split(' = ')[1].replace(' ','').replace('\n',''))
+    return {'name':experimentName,
+        'login':login,
+        "userName": _userName_,
+        'password': _password_,
+        'frequency': frequency,
+        'fileName': fileName}
         
     
     
@@ -93,16 +141,24 @@ def giSpyGDILoad(gDocURL,directory):
     gdi = {}
     print "Loading user account info from local directory"
     account = loadGDIAccount(gDocURL,directory)
-    print "DEBOO", account
     
     print "Loading email lists from local directory"
-    emails = gd.getLine('null', 'null', gDocURL, gdiEmail, False, [])
+    emails = gd.getLine(account['userName'], account['password'], account['fileName'], gdiEmail, False, [])
+    
     gdi['Email'] = emails[0]
     gdi['CC'] = emails[1]
     gdi['URL'] = gDocURL
+    gdi['UserName'] = account['userName']
+    gdi['Password'] = account['password']
+    gdi['FileName'] = account['fileName']
+    try:
+        gdi['Frequency'] = int(emails[2])
+    except:
+        gdi['Frequency'] = account['frequency']
     
     print "Loading word lists from local directory"
-    config = gd.getScript('null', 'null', gDocURL, gdiParams, gdiLists, "default", False, [])
+    config = gd.getScript(account['userName'], account['password'], account['fileName'], gdiParams, gdiLists, "default", False, [])
+    
     cfg = getConfig(config)
     cfg['OutDir'] = account['name'] + '/'
     cfg['FileName'] = account['name']
@@ -110,7 +166,7 @@ def giSpyGDILoad(gDocURL,directory):
     cfg['GDI'] = gdi
     cfg['UseGDI'] = True
     
-    uglyLists = gd.getScript('null', 'null', gDocURL, gdiLists, -1, "default", False, [])
+    uglyLists = gd.getScript(account['userName'], account['password'], account['fileName'], gdiLists, -1, "default", False, [])
     conditions = []
     qualifiers = set()
     exclusions = set()
@@ -521,6 +577,7 @@ def reformatOld(directory, lists, cfg):
         
         orderedKeys = sorted(collectedContent[0].keys())
         orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
+        
         addKeys = ["score","check3","check2","check1"]
         for key in addKeys:
             if key not in orderedKeys:  

@@ -120,13 +120,13 @@ def main():
         lists = temp['lists']
         print temp['login']
         login = getLogins(directory,[temp['login']])[temp['login']]
-        cfg['directory'] = directory
+        cfg['Directory'] = directory
         reformatOld(directory,lists,cfg)
         
     else: 
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
         cfg = getConfig(directory+configFile)
-        cfg['directory'] = directory
+        cfg['Directory'] = directory
         logins = getLogins(directory, cfg['Logins'])
         lists = updateWordBanks(directory, cfg)
         
