@@ -175,9 +175,9 @@ def giSpyGDILoad(gDocURL,directory):
         if len(str(row[0])) != 0:
             conditions.append(row[0])
         if len(str(row[1])) != 0:
-            qualifiers.add(row[0])
+            qualifiers.add(row[1])
         if len(str(row[2])) != 0:
-            exclusions.add(row[0])
+            exclusions.add(row[2])
     lists = {'conditions':conditions,'qualifiers':qualifiers,'exclusions':exclusions}
     return {'lists':lists,'config':cfg,'login':account['login']}
     
