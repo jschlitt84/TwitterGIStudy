@@ -6,8 +6,6 @@ import os
 
 from GISpy import *
 
-
-
 class giSeeker():
     def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
         self.delay = 30
@@ -18,17 +16,35 @@ class giSeeker():
         self.exclusions = exclusions
         self.cfg = cfg
         self.searchDelay = 600
+        self.rateLimit = 180
+        self.rateIncrement = 900
+        
+        giSeeker.flushTweets(self)
+        giSeeker.makeQueries(self)
+        
+        geoTemp = getGeo(cfg)
+        
+        if geoTemp == "STACK":
+            cfg['UseStacking'] = True
+            self.geo = "STACK"
+        else:
+            self.geo = geoString(getGeo(cfg))
+            
         if cfg['UseGDI']:
             self.searchDelay = cfg['GDI']['Frequency']
+        if cfg['UseStacking']:
+            temp = fillBox(cfg,self)
+            self.stackPoints = temp['list']
+            self.stackRadius = temp['radius']
+            self.stackQueries = len(self.queries) * len(self.stackPoints)
+            self.stackLast = time.time()
+                
         self.testSpace = testSpace
         self.runDay = datetime.datetime.now().strftime("%A %d")
         self.lastWrite = 'null'
         self.startDay = 'null'
-        giSeeker.flushTweets(self)
-        giSeeker.makeQueries(self)
-        self.geo = str(getGeo(cfg)).replace(' ','')[1:-1]+'mi'
-        self.center = [self.geo[1],self.geo[0]]
-        self.radius = self.geo[2]
+        
+
         print "\nInitiated seeker '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
         
         self.pathOut = self.cfg['OutDir']+'search/'
@@ -176,9 +192,19 @@ class giSeeker():
         print "Geographic Selection:", self.geo, '\n\n'
         while True:
             collected = []
+
+            if self.cfg['UseStacking']:
+                    counted = 0; increment = 10
+                    timeNow = time.time()
+                    elapsed = timeNow - self.stackLast
+                    self.stackLast = timeNow
+                    stackDelay = getDelay(self, elapsed)
+                    print "Running %s geoStack queries at 1 query every %s seconds" % (self.stackQueries,stackDelay)
+            
             for query in self.queries:
                 loggedIn = True
                 ranSearch = False
+
                 while not loggedIn or not ranSearch:
                     try:
                         #Issue of stream pagination currently unresolved
@@ -197,11 +223,25 @@ class giSeeker():
                             print item.text, item.coordinates, item.geo"""
         
                         #Method 2: Since id stream, may miss if keyword set yields over 100 new results
-                        collected += self.api.search(q = query, 
-                                                since_id = self.lastTweet,  
-                                                geocode = self.geo,
-                                                result_type="recent",
-                                                count = 100)
+                        if self.cfg['UseStacking']:
+                           for geoPoint in self.stackPoints:
+                                
+                                counted +=1
+                                if counted%increment == 0:
+                                    print "Running search %s out of %s" % (counted, self.stackQueries)
+                                
+                                collected += self.api.search(q = query, 
+                                                        since_id = self.lastTweet,  
+                                                        geocode = geoString(geoPoint),
+                                                        result_type="recent",
+                                                        count = 100)
+                                time.sleep(stackDelay)
+                        else:
+                            collected += self.api.search(q = query, 
+                                                    since_id = self.lastTweet,  
+                                                    geocode = self.geo,
+                                                    result_type="recent",
+                                                    count = 100)
                         ranSearch = True
                     except:
                         loggedIn = False
@@ -303,7 +343,7 @@ class giSeeker():
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
                 if len(idList) > 1:
-                    tweetsPerHour = float(len(idList)*3600)/((collected[-1].created_at-collected[0].created_at).seconds)
+                    tweetsPerHour = float(len(idList)*3600)/((self.jsonAccepted[-1].created_at-self.jsonAccepted[0].created_at).seconds)
                 else:
                     tweetsPerHour = "NA"
             else:

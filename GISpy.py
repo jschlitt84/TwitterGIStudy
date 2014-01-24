@@ -19,6 +19,7 @@ from copy import deepcopy
 from geopy.distance import great_circle
 from geopy import geocoders
 from dateutil import parser
+from math import pi, cos
 
 #timeArgs = "%A_%m-%d-%y_%H-%M-%S"
 timeArgs = '%a %d %b %Y %H:%M:%S'
@@ -26,6 +27,66 @@ timeArgs = '%a %d %b %Y %H:%M:%S'
 gdiEmail = 'Subscriber Email,CC Email'
 gdiParams = 'Param Name,Param Key'
 gdiLists = 'Conditions,Qualifiers,Exclusions'
+
+
+def getDelay(self,elapsed):
+    secPerSearch = max(float(self.rateIncrement-elapsed)/self.rateLimit,0.05)
+    return secPerSearch
+
+def fillBox(cfg,self):
+    #Adapting method from https://gist.github.com/flibbertigibbet/7956133
+    box = []
+    minLat = min([cfg['Lat1'],cfg['Lat2']])
+    maxLat = max([cfg['Lat1'],cfg['Lat2']])
+    minLon = min([cfg['Lon1'],cfg['Lon2']])
+    maxLon = max([cfg['Lon1'],cfg['Lon2']])
+    inr = 43301.3 # inradius
+    
+
+    circumr = 50000.0 # circumradius (50km)
+    circumrMiles = 0.621371 * circumr
+        
+    circumOffset = circumr * 1.5 # displacement to tile
+    earthr = 6378137.0 # Earth's radius, sphere
+    lat = minLat
+    lon = minLon
+    
+    # coordinate offsets in radians
+    dlat = (inr*2)/earthr
+    dlon = circumOffset/(earthr*cos(pi*lat/180))
+    
+    isOffset = False
+    while lon < maxLon:
+        #print(str(lat) + ", " + str(lon))
+        while lat < maxLat:
+            lat += dlat * 180.0/pi
+            #print('\t' + str(lat) + ", " + str(lon))
+            box.append([lon, lat, circumrMiles])
+ 
+        lat = minLat
+        lon += (circumOffset/(earthr*cos(pi*lat/180))) * 180.0/pi
+        isOffset = not isOffset
+        if isOffset:
+            lat -= (inr/earthr) * 180.0/pi
+    
+    """try:
+        secPerSearch = float(self.rateIncrement)/self.rateLimit
+        queries = len(self.queries); locations = len(box)
+        searchPerHour = 3600/secPerSearch
+        completePerHour = float(searchPerHour)/(queries*box)
+        print "%s queries generated with %s locations and %s total searches per cycle" % (queries,box,queries*box)
+        print "%s Total area searches possible per hour" % (completePerHour)
+    finally:
+        return {"list":box,'radius':circumrMiles}"""
+    
+    secPerSearch = float(self.rateIncrement)/self.rateLimit
+    queries = len(self.queries); locations = len(box)
+    searchPerHour = 3600/secPerSearch
+    completePerHour = float(searchPerHour)/(queries*locations)
+    print "%s queries generated with %s locations and %s total searches per cycle" % (queries,locations,queries*locations)
+    print "%s Total area searches possible per hour" % (completePerHour)
+    return {"list":box,'radius':circumrMiles}
+    
 
 
 
@@ -357,6 +418,10 @@ def openWhenReady(directory, mode):
                 print "Error: Unable to open", directory, "for 5000 seconds, quiting now"
                 quit()
     return fileOut
+    
+    
+def geoString(geo):
+    return str(geo).replace(' ','')[1:-1]+'mi'   
 
 #Returns true if coord is within lat/lon box, false if not
 #http://code.google.com/p/geopy/wiki/GettingStarted
@@ -442,10 +507,14 @@ def getGeo(cfg):
     center = [lonMid,latMid]
     corner = [lon1,latPt]
     radius = int(great_circle(center,corner).miles + 1)
-    print "Converting search box to radius search"
-    print "\tCenter:", center
-    print "\tRadius(mi):", radius
-    return [center[1],center[0],radius]
+    if radius > 40 and cfg['Method'].lower() == 'search':
+        print "Radius too large for single search, using stacking algorithm"
+        return "STACK"
+    else:
+        print "Converting search box to radius search"
+        print "\tCenter:", center
+        print "\tRadius(mi):", radius
+        return [center[1],center[0],radius]
     
     
 
@@ -645,7 +714,8 @@ def getConfig(directory):
                 'FileName':'filtered','OutDir':'outPut/',
                 'KeepAccepted':True,'KeepPartial':True,
                 'KeepExcluded':True, 'method':'search',
-                'Logins':'NoLoginsFound','UseGDI':False}
+                'Logins':'NoLoginsFound','UseGDI':False,
+                'UseStacking':False}
     
     if type(directory) is str:
         if directory == "null":
