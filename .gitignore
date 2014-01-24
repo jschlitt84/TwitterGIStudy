@@ -10,3 +10,7 @@ GDI
 Gdi
 tattooHunter/
 Twitter Creds.zip
+
+*.json
+
+bigGIHunter/search/checkbits
