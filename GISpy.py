@@ -29,9 +29,11 @@ gdiParams = 'Param Name,Param Key'
 gdiLists = 'Conditions,Qualifiers,Exclusions'
 
 
+
 def getDelay(self,elapsed):
     secPerSearch = max(float(self.rateIncrement-elapsed)/self.rateLimit,0.05)
     return secPerSearch
+
 
 def fillBox(cfg,self):
     #Adapting method from https://gist.github.com/flibbertigibbet/7956133
@@ -104,9 +106,9 @@ def sendCSV(cfg, directory):
     msg['Cc'] = cfg['GDI']['CC']
     msg['Subject'] = cfg['FileName'] + ' collected tweets for ' + datetime.datetime.now().strftime("%A %d")
     
-    text = "Please find csv spreadsheet file attached for study:" + cfg['FileName']
+    text = "Please find csv spreadsheet file attached for study: " + cfg['FileName']
     text += "\nParameters & configuration accessible at: " + cfg['GDI']['URL']
-    text += "\n\nPlease note changed parameters are updated after midnight & will not influence collection & parsing until the following day"
+    text += "\n\nAll changed parameters are updated after midnight & will not influence collection & parsing until the following day"
     msg.attach(MIMEText(text))
     
     directory += cfg['OutDir'] + cfg['Method'] + '/'
@@ -127,7 +129,7 @@ def sendCSV(cfg, directory):
     mailServer.starttls()
     mailServer.ehlo()
     mailServer.login(cfg['GDI']['UserName'], cfg['GDI']['Password'])
-    mailServer.sendmail(cfg['GDI']['UserName'], msg['To'], msg.as_string())
+    mailServer.sendmail(cfg['GDI']['UserName'],[msg['To'],msg['Cc']], msg.as_string())
     mailServer.close()
     print "File sent succesfully!"
 
@@ -206,8 +208,8 @@ def giSpyGDILoad(gDocURL,directory):
     print "Loading email lists from local directory"
     emails = gd.getLine(account['userName'], account['password'], account['fileName'], gdiEmail, False, [])
     
-    gdi['Email'] = emails[0]
-    gdi['CC'] = emails[1]
+    gdi['Email'] = emails[0].replace(' ',',')
+    gdi['CC'] = emails[1].replace(' ',',')
     gdi['URL'] = gDocURL
     gdi['UserName'] = account['userName']
     gdi['Password'] = account['password']

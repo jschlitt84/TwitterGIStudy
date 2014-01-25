@@ -93,6 +93,14 @@ class giSeeker():
             else:
                 lists = updateWordBanks(directory, self.cfg)
                 reformatOld(directory, lists, self.cfg)
+                self.cfg = getConfig(directory)
+                
+            if cfg['UseStacking']:
+                temp = fillBox(cfg,self)
+                self.stackPoints = temp['list']
+                self.stackRadius = temp['radius']
+                self.stackQueries = len(self.queries) * len(self.stackPoints)
+                self.stackLast = time.time()
                 
             self.conditions = lists['conditions']
             self.qualifiers = lists['qualifiers']
@@ -343,7 +351,7 @@ class giSeeker():
             if hasResults:
                 self.lastTweet = max(max(list(idList)), self.lastTweet)
                 if len(idList) > 1:
-                    tweetsPerHour = float(len(idList)*3600)/((self.jsonAccepted[-1].created_at-self.jsonAccepted[0].created_at).seconds)
+                    tweetsPerHour = float(len(idList)*3600)/((collected[0].created_at-collected[-1].created_at).seconds)
                 else:
                     tweetsPerHour = "NA"
             else:
