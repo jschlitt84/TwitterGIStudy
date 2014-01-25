@@ -222,6 +222,7 @@ class giSeeker():
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
                                                         count = 100)
+                                print query, geoString(geoPoint)
                                 time.sleep(stackDelay)
                                 ranSearch = True
                                 counted +=1
