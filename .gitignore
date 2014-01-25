@@ -14,3 +14,7 @@ Twitter Creds.zip
 *.json
 
 bigGIHunter/search/checkbits
+
+*.csv
+
+sliceHunter/search/checkbits

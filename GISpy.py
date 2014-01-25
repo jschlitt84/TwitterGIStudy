@@ -46,7 +46,7 @@ def fillBox(cfg,self):
     
 
     circumr = 50000.0 # circumradius (50km)
-    circumrMiles = 0.621371 * circumr
+    circumrMiles = int((0.621371 * circumr)/1000+1)
         
     circumOffset = circumr * 1.5 # displacement to tile
     earthr = 6378137.0 # Earth's radius, sphere
@@ -63,7 +63,7 @@ def fillBox(cfg,self):
         while lat < maxLat:
             lat += dlat * 180.0/pi
             #print('\t' + str(lat) + ", " + str(lon))
-            box.append([lon, lat, circumrMiles])
+            box.append([lat, lon, circumrMiles])
  
         lat = minLat
         lon += (circumOffset/(earthr*cos(pi*lat/180))) * 180.0/pi

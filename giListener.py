@@ -210,58 +210,72 @@ class giSeeker():
                     print "Running %s geoStack queries at 1 query every %s seconds" % (self.stackQueries,stackDelay)
             
             for query in self.queries:
-                loggedIn = True
-                ranSearch = False
-
-                while not loggedIn or not ranSearch:
-                    try:
-                        #Issue of stream pagination currently unresolved
-                        #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
+                if self.cfg['UseStacking']:
+                    for geoPoint in self.stackPoints:
+                        loggedIn = True
+                        ranSearch = False
                         
-                        #Method 1: Unlimited backstream, may have overlap or rate limiting issues
-                        """for tweet in tweepy.Cursor(self.api.search,q=query,
-                            geocode= self.geo,
-                            since_id= str(0),
-                            result_type="recent").items():
-                            
-                            print tweet.text
-                            collected.append(tweet)
-                            
-                        for item in collected:
-                            print item.text, item.coordinates, item.geo"""
-        
-                        #Method 2: Since id stream, may miss if keyword set yields over 100 new results
-                        if self.cfg['UseStacking']:
-                           for geoPoint in self.stackPoints:
-                                
-                                counted +=1
-                                if counted%increment == 0:
-                                    print "Running search %s out of %s" % (counted, self.stackQueries)
-                                
+                        while not loggedIn or not ranSearch:  
+                            try:
                                 collected += self.api.search(q = query, 
                                                         since_id = self.lastTweet,  
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
                                                         count = 100)
                                 time.sleep(stackDelay)
-                        else:
+                                ranSearch = True
+                                counted +=1
+                                if counted%increment == 0:
+                                    print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
+                            except:
+                                loggedIn = False
+                                while not loggedIn:
+                                    print "Login error, will sleep 60 seconds and attempt reconnection"
+                                    time.sleep(60)
+                                    try:
+                                        self.api = getAuth(self.cfg['_login_'])['api']
+                                        print "Login successfull"
+                                        loggedIn =  True
+                                    except:
+                                        print "Login unsuccessfull\n"
+                                
+                else:
+                    while not loggedIn or not ranSearch:
+                        try:
+                            #Issue of stream pagination currently unresolved
+                            #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
+                            
+                            #Method 1: Unlimited backstream, may have overlap or rate limiting issues
+                            """for tweet in tweepy.Cursor(self.api.search,q=query,
+                                geocode= self.geo,
+                                since_id= str(0),
+                                result_type="recent").items():
+                                
+                                print tweet.text
+                                collected.append(tweet)
+                                
+                            for item in collected:
+                                print item.text, item.coordinates, item.geo"""
+            
+                            #Method 2: Since id stream, may miss if keyword set yields over 100 new results
+    
                             collected += self.api.search(q = query, 
                                                     since_id = self.lastTweet,  
                                                     geocode = self.geo,
                                                     result_type="recent",
                                                     count = 100)
-                        ranSearch = True
-                    except:
-                        loggedIn = False
-                        while not loggedIn:
-                            print "Login error, will sleep 60 seconds and attempt reconnection"
-                            time.sleep(60)
-                            try:
-                                self.api = getAuth(self.cfg['_login_'])['api']
-                                print "Login successfull"
-                                loggedIn =  True
-                            except:
-                                print "Login unsuccessfull\n"
+                            ranSearch = True
+                        except:
+                            loggedIn = False
+                            while not loggedIn:
+                                print "Login error, will sleep 60 seconds and attempt reconnection"
+                                time.sleep(60)
+                                try:
+                                    self.api = getAuth(self.cfg['_login_'])['api']
+                                    print "Login successfull"
+                                    loggedIn =  True
+                                except:
+                                    print "Login unsuccessfull\n"
                 
             idList = set()            
             inBox = mappable = 0
