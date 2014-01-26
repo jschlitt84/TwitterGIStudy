@@ -95,7 +95,7 @@ class giSeeker():
                 reformatOld(directory, lists, self.cfg)
                 self.cfg = getConfig(directory)
                 
-            if cfg['UseStacking']:
+            if self.cfg['UseStacking']:
                 temp = fillBox(cfg,self)
                 self.stackPoints = temp['list']
                 self.stackRadius = temp['radius']
@@ -226,6 +226,8 @@ class giSeeker():
                                 time.sleep(stackDelay)
                                 ranSearch = True
                                 counted +=1
+                                if counted == self.rateLimit:
+                                    stackDelay = getDelay(self, 0)
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
                             except:
