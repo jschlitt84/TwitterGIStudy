@@ -695,7 +695,7 @@ def reformatOld(directory, lists, cfg):
                         'time':timeData['time'],
                         'date':timeData['date']}
                         
-}
+
                     filteredContent.append(tweet)
             
             collectedContent += filteredContent                  
