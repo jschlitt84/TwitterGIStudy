@@ -28,6 +28,6 @@ for process in processes:
     if 'python' in process:
         for url in urls:
             if url in process:
-                foundUrl = process[process.index('https://'),-1]
+                foundUrl = process[process.index('https://'):-1]
                 print foundUrl
                 running.add(foundUrl)
