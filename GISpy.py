@@ -770,7 +770,7 @@ def cleanJson(jsonOriginal, cfg, types):
             loaded = jsonIn[row]
             ID = str(loaded['id'])
             if ID not in types.keys():
-                del jsonIn[row]
+                toDelete.append(row)
             else:
                 loadedUser = loaded['user']
                 del loaded['user']
@@ -781,7 +781,9 @@ def cleanJson(jsonOriginal, cfg, types):
                         tempJson['user_' + key] = userJson[key]
                 jsonIn[row] = tempJson
                 for key in types[ID].keys():
-                    jsonIn[row][key] = types[ID][key]     
+                    jsonIn[row][key] = types[ID][key]
+        for row in reversed(toDelete):
+            del jsonIn[row]
     return jsonIn 
         
         
