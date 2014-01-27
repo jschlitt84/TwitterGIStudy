@@ -350,6 +350,7 @@ class giSeeker():
                         'geoType':geoType['text'],
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
+                        'place':geoType['place'],
                         'fineLocation':geoType['trueLoc'],
                         'localTime':outTime(localTime(status,self.cfg))}
             
@@ -510,6 +511,7 @@ class giListener(tweepy.StreamListener):
                         'geoType':geoType['text'],
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
+                        'place':geoType['place']
                         'fineLocation':geoType['trueLoc'],
                         'localTime':outTime(localTime(status,self.cfg))}             
                 
