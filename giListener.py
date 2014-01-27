@@ -341,7 +341,7 @@ class giSeeker():
                 inBox += geoType['inBox']
                 
                 loginInfo = "\033[94m%s:%s:%s%%\033[0m" % (self.name,geoType['text'],percentFilled)
-                if geoType['inBox']:
+                if geoType['inBox'] or self.cfg['KeepUnlocated']:
                     if tweetType == "accepted":
                         print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                                     status.author.screen_name, 
@@ -507,7 +507,7 @@ class giListener(tweepy.StreamListener):
             percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
             loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,percentFilled)
             tweetLocalTime = outTime(localTime(status,self.cfg))
-            if geoType['inBox']:
+            if geoType['inBox'] or self.cfg['KeepUnlocated']:
                 if tweetType == "accepted":
                     print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
                                 status.author.screen_name, 

@@ -684,7 +684,7 @@ def reformatOld(directory, lists, cfg):
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
                     geoType = isInBox(cfg,tweet)
-                    if geoType['inBox']:
+                    if geoType['inBox'] or cfg['KeepUnlocated']:
                         timeData = outTime(localTime(tweet,cfg))
                         collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
                             'geoType':geoType['text'],
@@ -800,7 +800,7 @@ def getConfig(directory):
                 'KeepAccepted':True,'KeepPartial':True,
                 'KeepExcluded':True, 'method':'search',
                 'Logins':'NoLoginsFound','UseGDI':False,
-                'UseStacking':False}
+                'UseStacking':False,'KeepUnlocated':False}
     
     if type(directory) is str:
         if directory == "null":
