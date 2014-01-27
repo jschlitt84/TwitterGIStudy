@@ -763,21 +763,25 @@ def cleanJson(jsonOriginal, cfg, types):
     
     jsonToDictFix(jsonIn)
     jsonIn = uniqueJson(jsonIn)
+    toDelete = []
     
     if len(tweetData + userData) > 0:
         for row in range(len(jsonIn)):
             loaded = jsonIn[row]
             ID = str(loaded['id'])
-            loadedUser = loaded['user']
-            del loaded['user']
-            tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
-            userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
-            if keepUser:
-                for key in userJson.keys():
-                    tempJson['user_' + key] = userJson[key]
-            jsonIn[row] = tempJson
-            for key in types[ID].keys():
-                jsonIn[row][key] = types[ID][key]     
+            if ID not in types.keys():
+                del jsonIn[row]
+            else:
+                loadedUser = loaded['user']
+                del loaded['user']
+                tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
+                userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
+                if keepUser:
+                    for key in userJson.keys():
+                        tempJson['user_' + key] = userJson[key]
+                jsonIn[row] = tempJson
+                for key in types[ID].keys():
+                    jsonIn[row][key] = types[ID][key]     
     return jsonIn 
         
         
