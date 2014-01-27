@@ -460,12 +460,12 @@ def geoString(geo):
 
 
 
-def patientGeoCoder(request)
+def patientGeoCoder(request):
     """Patient geocoder, will wait if API rate limit hit"""
     gCoder = geocoders.GoogleV3()
     tries = 0
     limit = 3
-    delay = 6
+    delay = 5
     while True:
         try:
             return gCoder.geocode(request)
