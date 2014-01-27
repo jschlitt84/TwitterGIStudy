@@ -126,6 +126,7 @@ def main():
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
         cfg = getConfig(directory+configFile)
         cfg['Directory'] = directory
+        cfg['ConfigFile'] = configFile
         logins = getLogins(directory, cfg['Logins'])
         lists = updateWordBanks(directory, cfg)
         

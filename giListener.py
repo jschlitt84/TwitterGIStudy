@@ -97,7 +97,7 @@ class giSeeker():
             else:
                 lists = updateWordBanks(directory, self.cfg)
                 reformatOld(directory, lists, self.cfg)
-                self.cfg = getConfig(directory)
+                self.cfg = getConfig(directory+self.cfg['ConfigFile'])
                 
             if self.cfg['UseStacking']:
                 temp = fillBox(cfg,self)
