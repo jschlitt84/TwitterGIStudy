@@ -692,7 +692,7 @@ def reformatOld(directory, lists, cfg):
                             'lon':geoType['lon'],
                             'fineLocation':geoType['trueLoc'],
                             'place':geoType['place'],
-                            'day':timeDate['day'],
+                            'day':timeData['day'],
                             'time':timeData['time'],
                             'date':timeData['date']}
                         
