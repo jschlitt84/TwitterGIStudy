@@ -25,7 +25,7 @@ ps = subprocess.Popen(['ps', 'aux'], stdout=subprocess.PIPE).communicate()[0]
 processes = ps.split('\n')
 
 for process in processes:
-    if 'python' python in process:
+    if 'python' in process:
         for url in urls:
             if url in process:
                 foundUrl = process[process.index('https://'),-1]
