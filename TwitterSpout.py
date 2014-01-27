@@ -149,7 +149,7 @@ def main():
         login = logins[userLogin]
     
     cfg['_login_'] = login
-    cfg['directory'] = directory
+    cfg['Directory'] = directory
     temp = getAuth(login)
     login['auth'] = temp['auth']
     login['api'] = temp['api']
