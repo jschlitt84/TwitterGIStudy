@@ -15,7 +15,7 @@ print "Loading URL list"
 
 for line in content:
     if '.url=' in line.replace(' ',''):
-        urls.add(line.replace(' ','').split('=')[1])
+        urls.add(line[line.index('https://'):]
         
 print "GDI URLS:", urls
 
@@ -28,6 +28,6 @@ for process in processes:
     if 'python' in process:
         for url in urls:
             if url in process:
-                foundUrl = process[process.index('https://'):-1]
+                foundUrl = process[process.index('https://'):]
                 print foundUrl
                 running.add(foundUrl)
