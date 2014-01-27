@@ -243,6 +243,8 @@ class giSeeker():
                                         print "Login unsuccessfull\n"
                                 
                 else:
+                    loggedIn = True
+                    ranSearch = False
                     while not loggedIn or not ranSearch:
                         try:
                             #Issue of stream pagination currently unresolved
