@@ -515,11 +515,11 @@ class giListener(tweepy.StreamListener):
                         'geoType':geoType['text'],
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
-                        'place':geoType['place']
+                        'place':geoType['place'],
                         'fineLocation':geoType['trueLoc'],
                         'day':tweetLocalTime['day'],
                         'time':tweetLocalTime['time'],
-                        'date':tweetLocalTime['date']}}             
+                        'date':tweetLocalTime['date']}             
                 
         except Exception, e:
             print "Encountered exception:", e
