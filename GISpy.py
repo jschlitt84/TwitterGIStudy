@@ -31,12 +31,14 @@ gdiLists = 'Conditions,Qualifiers,Exclusions'
 
 
 def getDelay(self,elapsed):
+    """Calculates optimum stacked search delay for API rate limits"""
     secPerSearch = max(float(self.rateIncrement-elapsed)/self.rateLimit,0.05)
     return secPerSearch
 
 
 def fillBox(cfg,self):
     #Adapting method from https://gist.github.com/flibbertigibbet/7956133
+    """Fills large search area with stacked subsearches of 50km radius"""
     box = []
     minLat = min([cfg['Lat1'],cfg['Lat2']])
     maxLat = max([cfg['Lat1'],cfg['Lat2']])
@@ -94,6 +96,7 @@ def fillBox(cfg,self):
 
 def sendCSV(cfg, directory):
     #Adapting method from http://kutuma.blogspot.com/2007/08/sending-emails-via-gmail-with-python.html
+    """Emails results to GDI subscriber(s)"""
     outName = cfg['FileName']+"_CollectedTweets"
     attachment = cfg['OutDir']+outName+'.csv'
 
@@ -133,8 +136,10 @@ def sendCSV(cfg, directory):
     mailServer.close()
     print "File sent succesfully!"
 
+
     
 def loadGDIAccount(gDocURL,directory):
+    """Pulls subscriber info & settings from local config file"""
     fileIn = open(directory+'gdiAccounts')
     content = fileIn.readlines()
     found = False
@@ -201,6 +206,7 @@ def loadGDIAccount(gDocURL,directory):
     
 
 def giSpyGDILoad(gDocURL,directory):
+    """Updates user config & lists for GDI seeker"""
     gdi = {}
     print "Loading user account info from local directory"
     account = loadGDIAccount(gDocURL,directory)
@@ -247,15 +253,19 @@ def giSpyGDILoad(gDocURL,directory):
     
     
     
-
 def getAuth(login):
+    """Log in via twitter dev account"""
     """Return authorization object"""
     auth1 = tweepy.auth.OAuthHandler(login['consumerKey'],login['consumerSecret'])
     auth1.set_access_token(login['accessToken'],login['accessTokenSecret'])
     api = tweepy.API(auth1)
     return {'auth':auth1,'api':api}
 
+
+
+
 def stripUnicode(text):
+    """Strips unicode special characters for text storage (smileys, etc)"""
     if text == None:
         return "NaN"
     else:
@@ -264,10 +274,18 @@ def stripUnicode(text):
         else:
             return text
 
+
+
+
 def outTime(dtobject):
+    """quick, standardized time string out"""
     return dtobject.strftime(timeArgs)
     
+    
+    
+    
 def localTime(timeContainer, offset):
+    """returns local time offset by timezone"""
     typeTC = type(timeContainer)
     if typeTC != datetime.datetime and typeTC != datetime.time and typeTC != datetime.date:
         if typeTC is dict:
@@ -294,6 +312,9 @@ def localTime(timeContainer, offset):
     return corrected
     #return {'dt':corrected,'text':corrected.stroftime(timeArgs)}
 
+
+
+
 def uniqueJson(rawResults):
     """ returns a tweet json filtered for unique IDS and sorted"""
     collected = rawResults[:]
@@ -306,7 +327,9 @@ def uniqueJson(rawResults):
         collected = dict([(tweet.id, tweet) for tweet in collected]).values()
         collected = sorted(collected, key=lambda k: k.id)
     return collected
+
     
+
 
 def getLogins(directory, files):
     """gets login parameters from list & directory passed on by config file"""
@@ -346,6 +369,8 @@ def getLogins(directory, files):
     return logins
     
 
+
+
 def getWords(directory, name):
     """Loads & cleans phrases from text file"""
     try:
@@ -377,8 +402,9 @@ def getWords(directory, name):
 
 
 
-#Pulls word lists from local directory
+
 def updateWordBanks(directory, cfg): 
+    """Pulls word lists from local directory or GDI"""
     useGDI = False
     try:
         if cfg.has_key('UseGDI'):
@@ -406,8 +432,10 @@ def updateWordBanks(directory, cfg):
         return {'conditions':conditions,"qualifiers": qualifiers, 'exclusions': exclusions}
     
 
-#Trys to open a file, if unable, waits five seconds and tries again
+
+
 def openWhenReady(directory, mode):
+    """Trys to open a file, if unable, waits five seconds and tries again"""
     attempts = 0
     while True:
         try:
@@ -422,14 +450,37 @@ def openWhenReady(directory, mode):
     return fileOut
     
     
+   
+    
 def geoString(geo):
+    """Returns twitter search request formatted geoCoords"""
     return str(geo).replace(' ','')[1:-1]+'mi'   
 
-#Returns true if coord is within lat/lon box, false if not
-#http://code.google.com/p/geopy/wiki/GettingStarted
+
+
+
+def patientGeoCoder(request)
+    """Patient geocoder, will wait if API rate limit hit"""
+    gCoder = geocoders.GoogleV3()
+    tries = 0
+    limit = 3
+    delay = 6
+    while True:
+        try:
+            return gCoder.geocode(request)
+        except:
+            tries +=1
+            if tries == limit:
+                return None
+            time.sleep(delay)
+            
+            
+            
 
 def isInBox(cfg,status):
-    gCoder = geocoders.GoogleV3()
+    """Returns true if coord is within lat/lon box, false if not"""
+    #http://code.google.com/p/geopy/wiki/GettingStarted
+    #gCoder = geocoders.GoogleV3()
     hasCoords = False
     hasPlace = False
     coordsWork = False
@@ -463,7 +514,7 @@ def isInBox(cfg,status):
             #lookup coords by location name
             try:
                 userLoc = str(userLoc).replace('Va','Virginia')
-                place, (lat, lng) = gCoder.geocode(str(userLoc))
+                place, (lat, lng) = patientGeoCoder(userLoc)
                 time.sleep(.15); coordinates = [lng,lat] 
                 hasPlace = True
                 hasCoords = True
@@ -476,7 +527,7 @@ def isInBox(cfg,status):
         #status['coordinates'] = coordinates
         if not hasPlace:
             try:
-                place, (lat, lng) = gCoder.geocode(str(coordinates[1])+','+str(coordinates[0]))
+                place, (lat, lng) = patientGeoCoder(str(coordinates[1])+','+str(coordinates[0]))
                 time.sleep(.15)
             except:
                 None
@@ -494,8 +545,10 @@ def isInBox(cfg,status):
         return {'inBox':False,'text':'Error','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
 
 
-# Finds center and radius in miles of circle than covers lat lon box
+
+
 def getGeo(cfg):
+    """Generates geo queries to cover lat/lon box"""
     lat1 = cfg['Lat1']
     lat2 = cfg['Lat2']
     lon1 = cfg['Lon1']
@@ -520,8 +573,9 @@ def getGeo(cfg):
     
     
 
-#Checks if tweet matches search criteria
+
 def checkTweet(conditions, qualifiers, exclusions, text):
+  """Checks if tweet matches search criteria"""
   text = text.lower()
   foundCondition = False
   foundQualifier = False
@@ -549,8 +603,12 @@ def checkTweet(conditions, qualifiers, exclusions, text):
       return "partial"
     else:
         return "irrelevant"
+        
+        
+        
 
 def jsonToDictFix(jsonIn):
+    """Error hardy json converter"""
     if type(jsonIn) is list:
         for row in range(len(jsonIn)):
             if type(jsonIn[row]) is str or type(jsonIn[row]) is unicode:
@@ -560,12 +618,20 @@ def jsonToDictFix(jsonIn):
     else:
         jsonIn = json.loads(jsonIn)
             
+            
+            
+            
 def dictToJsonFix(jsonOut):
+    """Error tolerant json converter"""
      for row in range(len(jsonOut)):
         if type(jsonOut[row]) is dict:
             jsonOut[row] = json.dump(jsonOut[row])   
 
+
+
+
 def reformatOld(directory, lists, cfg):
+    """Keeps old content up to date with latests queries & settings"""
     homeDirectory = directory
     keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
     
@@ -622,6 +688,7 @@ def reformatOld(directory, lists, cfg):
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
                         'fineLocation':geoType['trueLoc'],
+                        'place':geoType['place'],
                         'localTime':outTime(localTime(tweet,cfg))}
                     filteredContent.append(tweet)
             
@@ -679,6 +746,7 @@ def reformatOld(directory, lists, cfg):
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
 def cleanJson(jsonOriginal, cfg, types):
+    """Returns filtered json with only desired data & derived data"""
     
     jsonIn = deepcopy(jsonOriginal)
     
@@ -706,8 +774,10 @@ def cleanJson(jsonOriginal, cfg, types):
     return jsonIn 
         
         
-#Loads configuration from file config
+
+
 def getConfig(directory):
+    """Loads configuration from file config"""
     TweetData = 'all'
     UserData = {}
     #default values
@@ -778,8 +848,9 @@ def getConfig(directory):
     
     
     
-#List from text
+
 def textToList(string):
+    """Loads lists from text scripting"""
     text = string.replace(',','')
     while '  ' in text:
         text = text.replace('  ',' ')
