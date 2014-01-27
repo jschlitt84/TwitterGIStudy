@@ -682,18 +682,19 @@ def reformatOld(directory, lists, cfg):
             for tweet in content:
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
-                geoType = isInBox(cfg,tweet)
-                if tweetType in keepTypes and geoType['inBox']:
-                    timeData = outTime(localTime(tweet,cfg))
-                    collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
-                        'geoType':geoType['text'],
-                        'lat':geoType['lat'],
-                        'lon':geoType['lon'],
-                        'fineLocation':geoType['trueLoc'],
-                        'place':geoType['place'],
-                        'day':timeDate['day'],
-                        'time':timeData['time'],
-                        'date':timeData['date']}
+                if tweetType in keepTypes:
+                    geoType = isInBox(cfg,tweet)
+                    if geoType['inBox']:
+                        timeData = outTime(localTime(tweet,cfg))
+                        collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
+                            'geoType':geoType['text'],
+                            'lat':geoType['lat'],
+                            'lon':geoType['lon'],
+                            'fineLocation':geoType['trueLoc'],
+                            'place':geoType['place'],
+                            'day':timeDate['day'],
+                            'time':timeData['time'],
+                            'date':timeData['date']}
                         
 
                     filteredContent.append(tweet)
