@@ -623,7 +623,7 @@ def jsonToDictFix(jsonIn):
             
             
 def dictToJsonFix(jsonOut):
-    """Error tolerant json converter"""
+     """Error tolerant json converter"""
      for row in range(len(jsonOut)):
         if type(jsonOut[row]) is dict:
             jsonOut[row] = json.dump(jsonOut[row])   
