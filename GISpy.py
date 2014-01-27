@@ -279,7 +279,8 @@ def stripUnicode(text):
 
 def outTime(dtobject):
     """quick, standardized time string out"""
-    return dtobject.strftime(timeArgs)
+    return {'full':dtobject.strftime(timeArgs),'day':dtobject.strftime('%A'),
+        'date':dtobject.strftime('%m-%d-%y'),'time':dtobject.strftime('%H:%S')}
     
     
     
@@ -681,15 +682,20 @@ def reformatOld(directory, lists, cfg):
             for tweet in content:
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
-                if tweetType in keepTypes:
-                    geoType = isInBox(cfg,tweet)
+                geoType = isInBox(cfg,tweet)
+                if tweetType in keepTypes and geoType['inBox']:
+                    timeData = outTime(localTime(tweet,cfg))
                     collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
                         'geoType':geoType['text'],
                         'lat':geoType['lat'],
                         'lon':geoType['lon'],
                         'fineLocation':geoType['trueLoc'],
                         'place':geoType['place'],
-                        'localTime':outTime(localTime(tweet,cfg))}
+                        'day':timeDate['day'],
+                        'time':timeData['time'],
+                        'date':timeData['date']}
+                        
+}
                     filteredContent.append(tweet)
             
             collectedContent += filteredContent                  
