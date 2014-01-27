@@ -314,36 +314,37 @@ class giSeeker():
                 inBox += geoType['inBox']
                 
                 loginInfo = "\033[94m%s:%s:%s%%\033[0m" % (self.name,geoType['text'],percentFilled)
-                if tweetType == "accepted":
-                    print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
-                                status.author.screen_name, 
-                                tweetLocalTime, 
-                                status.source,)
-                    if geoType['inBox']:
-                        mappable += 1
-                    self.tweetCount += self.cfg['KeepAccepted']
-                    self.acceptedCount += 1
-                    self.jsonAccepted.append(status.json)
-                elif tweetType == "excluded":
-                    print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
-                                status.author.screen_name, 
-                                tweetLocalTime, 
-                                status.source,)
-                    self.tweetCount += self.cfg['KeepExcluded']
-                    self.excludedCount += 1
-                    self.jsonExcluded.append(status.json)
-                elif tweetType == "partial":
-                    print loginInfo, "%s\t%s\t%s\t%s" % (text, 
-                                status.author.screen_name, 
-                                tweetLocalTime, 
-                                status.source,)
-                    self.tweetCount += self.cfg['KeepPartial']
-                    self.partialCount += 1
-                    self.jsonPartial.append(status.json)
-                elif tweetType == "retweet":
-                    None
-                else:
-                    self.irrelevantCount += 1
+                if geoType['inBox']:
+                    if tweetType == "accepted":
+                        print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
+                                    status.author.screen_name, 
+                                    tweetLocalTime['full'], 
+                                    status.source,)
+                        if geoType['inBox']:
+                            mappable += 1
+                        self.tweetCount += self.cfg['KeepAccepted']
+                        self.acceptedCount += 1
+                        self.jsonAccepted.append(status.json)
+                    elif tweetType == "excluded":
+                        print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
+                                    status.author.screen_name, 
+                                    tweetLocalTime['full'], 
+                                    status.source,)
+                        self.tweetCount += self.cfg['KeepExcluded']
+                        self.excludedCount += 1
+                        self.jsonExcluded.append(status.json)
+                    elif tweetType == "partial":
+                        print loginInfo, "%s\t%s\t%s\t%s" % (text, 
+                                    status.author.screen_name, 
+                                    tweetLocalTime['full'], 
+                                    status.source,)
+                        self.tweetCount += self.cfg['KeepPartial']
+                        self.partialCount += 1
+                        self.jsonPartial.append(status.json)
+                    elif tweetType == "retweet":
+                        None
+                    else:
+                        self.irrelevantCount += 1
                 if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
                     self.jsonRaw.append(status.json)
                     self.tweetTypes[str(status.id)] = {'tweetType':tweetType,
@@ -352,7 +353,9 @@ class giSeeker():
                         'lon':geoType['lon'],
                         'place':geoType['place'],
                         'fineLocation':geoType['trueLoc'],
-                        'localTime':outTime(localTime(status,self.cfg))}
+                        'day':tweetLocalTime['day'],
+                        'time':tweetLocalTime['time'],
+                        'date':tweetLocalTime['date']}
             
             if newDay:
                 giSeeker.saveTweets(self)
@@ -473,38 +476,39 @@ class giListener(tweepy.StreamListener):
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
             geoType = isInBox(self.cfg,status)
-            #print json.loads(status.json).keys()
+
             percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
             loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,percentFilled)
             tweetLocalTime = outTime(localTime(status,self.cfg))
-            if tweetType == "accepted":
-                print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
-                            status.author.screen_name, 
-                            tweetLocalTime, 
-                            status.source,)
-                self.tweetCount += self.cfg['KeepAccepted']
-                self.acceptedCount += 1
-                self.jsonAccepted.append(status.json)
-            elif tweetType == "excluded":
-                print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
-                            status.author.screen_name, 
-                            tweetLocalTime, 
-                            status.source,)
-                self.tweetCount += self.cfg['KeepExcluded']
-                self.excludedCount += 1
-                self.jsonExcluded.append(status.json)
-            elif tweetType == "partial":
-                print loginInfo, "%s\t%s\t%s\t%s" % (text, 
-                            status.author.screen_name, 
-                            tweetLocalTime, 
-                            status.source,)
-                self.tweetCount += self.cfg['KeepPartial']
-                self.partialCount += 1
-                self.jsonPartial.append(status.json)
-            elif tweetType == "retweet":
-                None
-            else:
-                self.irrelevantCount += 1
+            if geoType['inBox']:
+                if tweetType == "accepted":
+                    print loginInfo, "\033[1m%s\t%s\t%s\t%s\033[0m" % (text, 
+                                status.author.screen_name, 
+                                tweetLocalTime['full'], 
+                                status.source,)
+                    self.tweetCount += self.cfg['KeepAccepted']
+                    self.acceptedCount += 1
+                    self.jsonAccepted.append(status.json)
+                elif tweetType == "excluded":
+                    print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
+                                status.author.screen_name, 
+                                tweetLocalTime['full'], 
+                                status.source,)
+                    self.tweetCount += self.cfg['KeepExcluded']
+                    self.excludedCount += 1
+                    self.jsonExcluded.append(status.json)
+                elif tweetType == "partial":
+                    print loginInfo, "%s\t%s\t%s\t%s" % (text, 
+                                status.author.screen_name, 
+                                tweetLocalTime['full'], 
+                                status.source,)
+                    self.tweetCount += self.cfg['KeepPartial']
+                    self.partialCount += 1
+                    self.jsonPartial.append(status.json)
+                elif tweetType == "retweet":
+                    None
+                else:
+                    self.irrelevantCount += 1
             if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
                 self.jsonRaw.append(status.json)
                 self.tweetTypes[str(status.id)] = {'tweetType':tweetType,
@@ -513,7 +517,9 @@ class giListener(tweepy.StreamListener):
                         'lon':geoType['lon'],
                         'place':geoType['place']
                         'fineLocation':geoType['trueLoc'],
-                        'localTime':outTime(localTime(status,self.cfg))}             
+                        'day':tweetLocalTime['day'],
+                        'time':tweetLocalTime['time'],
+                        'date':tweetLocalTime['date']}}             
                 
         except Exception, e:
             print "Encountered exception:", e
