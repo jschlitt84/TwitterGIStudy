@@ -118,7 +118,6 @@ def main():
         temp = giSpyGDILoad(gDocURL,directory)
         cfg = temp['config']
         lists = temp['lists']
-        print temp['login']
         login = getLogins(directory,[temp['login']])[temp['login']]
         cfg['Directory'] = directory
         reformatOld(directory,lists,cfg)

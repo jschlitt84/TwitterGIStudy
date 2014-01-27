@@ -1,5 +1,6 @@
 import tweepy
 import datetime, time
+#import numpy
 import json
 import os
 
@@ -24,6 +25,15 @@ class giSeeker():
         
         geoTemp = getGeo(cfg)
         
+        self.pathOut = self.cfg['OutDir']+'search/'
+        if not os.path.exists(self.pathOut):
+            os.makedirs(self.pathOut) 
+        fileOut = openWhenReady(self.pathOut + 'checkbits','w')
+        fileOut.write('DayFinished = False')
+        fileOut.close()
+            
+        giSeeker.getLastID(self)
+            
         if geoTemp == "STACK":
             cfg['UseStacking'] = True
             self.geo = "STACK"
@@ -37,6 +47,7 @@ class giSeeker():
             self.stackPoints = temp['list']
             self.stackRadius = temp['radius']
             self.stackQueries = len(self.queries) * len(self.stackPoints)
+            self.stackLastTweet = [[self.lastTweet for _ in xrange(len(self.stackPoints))] for __ in xrange(len(self.queries))]
             self.stackLast = time.time()
                 
         self.testSpace = testSpace
@@ -46,16 +57,8 @@ class giSeeker():
         
 
         print "\nInitiated seeker '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
-        
-        self.pathOut = self.cfg['OutDir']+'search/'
-        if not os.path.exists(self.pathOut):
-            os.makedirs(self.pathOut)   
             
-        fileOut = openWhenReady(self.pathOut + 'checkbits','w')
-        fileOut.write('DayFinished = False')
-        fileOut.close()
-            
-        giSeeker.getLastID(self)
+
     
     
     def closeDay(self):
@@ -77,9 +80,10 @@ class giSeeker():
         
         
         if self.runDay != datetime.datetime.now().strftime("%A %d"):
-            print "DEBOO", self.runDay, datetime.datetime.now().strftime("%A %d")
             print "End of day noted, updating word banks & reformating past filtered output"
             self.runDay = datetime.datetime.now().strftime("%A %d")
+            
+            tempQueries = self.queries
             
             if self.cfg['UseGDI']:
                 temp = giSpyGDILoad(self.cfg['GDI']['URL'],self.cfg['Directory'])
@@ -97,9 +101,14 @@ class giSeeker():
                 
             if self.cfg['UseStacking']:
                 temp = fillBox(cfg,self)
-                self.stackPoints = temp['list']
-                self.stackRadius = temp['radius']
-                self.stackQueries = len(self.queries) * len(self.stackPoints)
+                tempPoints = self.stackPoints
+                
+                if tempPoints != temp['list'] or tempQueries != self.queries:
+                    self.stackPoints = temp['list']
+                    self.stackRadius = temp['radius']
+                    self.stackQueries = len(self.stackPoints) * len(self.queries)
+                    self.stackLastTweet = [[self.lastTweet for _ in xrange(len(self.stackPoints))] for __ in xrange(len(self.queries))]
+                    
                 self.stackLast = time.time()
                 
             self.conditions = lists['conditions']
@@ -209,28 +218,44 @@ class giSeeker():
                     stackDelay = getDelay(self, elapsed)
                     print "Running %s geoStack queries at 1 query every %s seconds" % (self.stackQueries,stackDelay)
             
+            queryCount = -1
             for query in self.queries:
                 if self.cfg['UseStacking']:
+                    geoCount = 0; queryCount += 1
+                    
                     for geoPoint in self.stackPoints:
                         loggedIn = True
                         ranSearch = False
                         
+                        #print "DEBOOO MATRIX", len(self.stackLastTweet), len(self.stackLastTweet[0])
                         while not loggedIn or not ranSearch:  
-                            try:
-                                collected += self.api.search(q = query, 
-                                                        since_id = self.lastTweet,  
+                            if True:
+                                cellCollected = self.api.search(q = query, 
+                                                        since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
                                                         count = 100)
                                 #print query, geoString(geoPoint)
-                                time.sleep(stackDelay)
+                                
+                                if len(cellCollected)>0:
+                                    collected += cellCollected
+                                    
+                                    """ids = set()
+                                    for item in cellCollected:
+                                        ids.add(int(item.id))
+                                        print int(item.id)
+                                    self.stackLastTweet[queryCount][geoCount] = max(ids)"""
+                                    self.stackLastTweet[queryCount][geoCount] = int(collected[0].id)
+                                    
+                                geoCount += 1; counted += 1
+                                    
                                 ranSearch = True
-                                counted +=1
-                                if counted == self.rateLimit:
+                                if counted == self.rateLimit/2:
                                     stackDelay = getDelay(self, 0)
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
-                            except:
+                                time.sleep(stackDelay)
+                            else:
                                 loggedIn = False
                                 while not loggedIn:
                                     print "Login error, will sleep 60 seconds and attempt reconnection"
