@@ -15,7 +15,7 @@ print "Loading URL list"
 
 for line in content:
     if '.url=' in line.replace(' ',''):
-        urls.add(line[line.index('https://'):])
+        urls.add(line[line.index('https://'):-1])
         
 print "GDI URLS:", urls
 
