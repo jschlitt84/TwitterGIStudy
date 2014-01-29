@@ -464,14 +464,15 @@ def patientGeoCoder(request):
     """Patient geocoder, will wait if API rate limit hit"""
     gCoder = geocoders.GoogleV3()
     tries = 0
-    limit = 30
-    delay = 5
+    limit = 5
+    delay = 10
     while True:
         try:
             return gCoder.geocode(request)
         except:
             tries +=1
             if tries == limit:
+                print "\nUnable to geoCode", request, '\n'
                 return None
             time.sleep(delay)
             
@@ -485,7 +486,7 @@ def isInBox(cfg,status):
     hasCoords = False
     hasPlace = False
     coordsWork = False
-    place = 'Nan'
+    place = 'NaN'
 
     if type(status) is dict:
         userLoc = status['user']['location']
@@ -669,10 +670,12 @@ def reformatOld(directory, lists, cfg):
         collectedTypes = {}
             
         fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
+        count = 0
         for fileName in fileList:
             inFile = open(directory+fileName)
             content = json.load(inFile)
             filteredContent = []
+            
             
             print "Reclassifying", fileName, "by updated lists"
             
@@ -680,6 +683,9 @@ def reformatOld(directory, lists, cfg):
                 jsonToDictFix(content)
             
             for tweet in content:
+                count += 1
+                if count%250 == 0:
+                    print "\t",count,"tweets sorted"
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
