@@ -14,3 +14,4 @@ TimeOffset = -5
 FileName = GIStudy
 TweetData = text, id, created_at
 UserData =  screen_name, lang
+UseNLTK = True
