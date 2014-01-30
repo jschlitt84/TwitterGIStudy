@@ -19,8 +19,9 @@ from nltk.corpus import stopwords
 textColumn = 'text'
 categoryColumn = 'check1'
 defaultFile = 'NLTK_Ready_Tweets.csv'
-degreesToUse = [1,2,3]
+degreesToUse = [1,2,3,4]
 cutoff = .75
+resultKey = {1:"no suspicion of infectious illness",2:"suspicion of infectious illness, type unknown",3:"suspicion of infectious GI illness"}
 
 
 def loadFile(text):
@@ -124,10 +125,20 @@ def collectNGrams(categorized, degreesUsed):
         collected[key] = [(getNGrams(entry['text'], degreesUsed),entry['category']) for entry in categorized[key]]
     return collected
                                              
-            
-def main():
+ 
+def classifySingle(text, classifier):
+    temp = getNGrams(prepTweet(text),degreesToUse)
+    result = classifier.classify(temp)
+    print "Query:", text
+    try:
+        print "Result:", resultKey[result]
+    except:
+        print "Result:", result
+    return result
+     
+def getClassifier(tweetfile):
     print "Loading content & preparing text"
-    content = prepText(loadFile(sys.argv))
+    content = prepText(loadFile(tweetfile))
     print "Categorizing contents"
     categorized = prepClassifications(content)
     print "Deriving NGrams"
@@ -139,7 +150,28 @@ def main():
         
     print "Attempting Classification"
     classifier = NaiveBayesClassifier.train(readyToSend)
-    print "Most informative:"
-    classifier.show_most_informative_features()
+    print
+    classifier.show_most_informative_features(n=30)
+    return classifier
 
-main()
+def main(tweetfile):
+    testMode = False
+    try:
+        if sys.argv[1] == 'test':
+            testMode = True
+    except:
+        testMode = False
+        
+    classifier = getClassifier(tweetfile)
+    
+    if testMode:
+        print "\nInitiating testing mode\n"
+        while True:
+            query = str(raw_input("Please enter a test sentance: \t"))
+            if query.lower() == 'quit':
+                quit()
+            classifySingle(query, classifier)
+
+
+if __name__ == '__main__':
+    main(sys.argv)
