@@ -62,7 +62,7 @@ def prepTweet(word):
         
     text = text.replace("&amp",'&') #cleanup conversion bug
     
-    punctuations = ".,'\"-_%!=+\n\t:;()*&$"
+    punctuations = ".,\"-_%!=+\n\t:;()*&$"
     for char in punctuations:
         text = text.replace(char,' ')
     while '  ' in text:
@@ -104,7 +104,7 @@ def prepClassifications(content):
         totals[category] += 1
         
     print "Unique classifications found:",classifications 
-    print "Occurences:", totals
+    print "Occurrences:", totals
         
     prepped = dict()
     for classification in classifications:
@@ -167,7 +167,7 @@ def main(tweetfile):
     if testMode:
         print "\nInitiating testing mode\n"
         while True:
-            query = str(raw_input("Please enter a test sentance: \t"))
+            query = str(raw_input("Please enter a test sentence: \t"))
             if query.lower() == 'quit':
                 quit()
             classifySingle(query, classifier)
