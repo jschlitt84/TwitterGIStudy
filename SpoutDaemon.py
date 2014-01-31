@@ -21,7 +21,8 @@ while True:
         if '.url=' in line.replace(' ',''):
             urls.add(line[line.index('https://'):-1])
         
-    print format + "GDI URLS:", urls,end
+    for url in urls:
+        print format + "GDI URL:", url,end
     running = set()
     
     ps = subprocess.Popen(['ps', 'aux'], stdout=subprocess.PIPE).communicate()[0]
