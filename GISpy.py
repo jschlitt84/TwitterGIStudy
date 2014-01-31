@@ -48,6 +48,7 @@ def updateGeoPickle(dictionary,fileRef):
         needsWrite = True
     
     if needsWrite:
+        print "Updating master geoPickle"
         pickleOut = openWhenReady(fileRef,"wb")
         pickle.dump(dictionary, pickleOut)
         pickleOut.close()
