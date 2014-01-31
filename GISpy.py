@@ -39,6 +39,7 @@ def updateGeoPickle(dictionary,fileRef):
     if pickleExists:
         pickleIn = openWhenReady(fileRef, "rb")
         pickleLoaded = pickle.load(pickleIn)
+        length1 = len(pickleLoaded.keys())
         pickleIn.close()
         if dictionary.keys() != pickleLoaded.keys():
             dictionary.update(pickleLoaded)
