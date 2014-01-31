@@ -1,19 +1,26 @@
 import subprocess
 import time
+import sys
 
 format = "\033[91m\033[1m"
 end = "\033[0m"
+secondsPerDay = 86400
+daysToRefresh = 5
+delay = 1200
+count = 0
+sleepEvery = (secondsPerDay*daysToRefresh)/delay
 
 while True:
+    count += 1
     try:
         fileIn = open(sys.argv[1])
     except:
         fileIn = open('gdiAccounts')
     
     urls = set()
-    delay = 1200
     
     content = fileIn.readlines()
+    fileIn.close()
     
     print format+"\n\n(Re)Loading URL list",end
     
@@ -36,6 +43,9 @@ while True:
                     foundUrl = process[process.index('https://'):]
                     print format+"RUNNING:",foundUrl,end
                     running.add(foundUrl)
+                    
+    if count%sleepEvery == 0:
+        None
     
     notRunning = set.difference(urls,running)
     for item in notRunning:
