@@ -479,7 +479,7 @@ def patientGeoCoder(request):
             
             
 
-def isInBox(cfg,status):
+def isInBox(cfg,geoCache,status):
     """Returns true if coord is within lat/lon box, false if not"""
     #http://code.google.com/p/geopy/wiki/GettingStarted
     #gCoder = geocoders.GoogleV3()
@@ -501,6 +501,10 @@ def isInBox(cfg,status):
             coordinates = coordinates['coordinates']
             hasCoords = True
     
+    cacheRef = str(coordinates) + str(userLoc)
+    if cacheRef  in geoCache.keys():
+        return geoCache[cacheRef]
+    
     if type(coordinates) is list:
         coordsWork = len(coordinates) == 2
             
@@ -521,10 +525,14 @@ def isInBox(cfg,status):
                 hasPlace = True
                 hasCoords = True
             except:
-                return {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
+                output = {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
+                geoCache[cacheRef] = output
+                return output
    
     if not hasCoords:
-        return {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
+        output = {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
+        geoCache[cacheRef] = output
+        return output
     else:
         #status['coordinates'] = coordinates
         if not hasPlace:
@@ -539,13 +547,20 @@ def isInBox(cfg,status):
         
     try:
         if sorted([cfg['Lat1'],cfg['Lat2'],coordinates[1]])[1] != coordinates[1]:
-            return {'inBox':False,'text':'HasCoords','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+            output = {'inBox':False,'text':'HasCoords','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+            geoCache[cacheRef] = output
+            return output
         if sorted([cfg['Lon1'],cfg['Lon2'],coordinates[0]])[1] != coordinates[0]:
-            return {'inBox':False,'text':'HasCoords','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
-        return {'inBox':True,'text':'InBox','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+            output = {'inBox':False,'text':'HasCoords','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+            geoCache[cacheRef] = output
+            return output
+        output =  {'inBox':True,'text':'InBox','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+        geoCache[cacheRef] = output
+        return output
     except:
-        return {'inBox':False,'text':'Error','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
-
+        output = {'inBox':False,'text':'Error','place':place,'lat':coordinates[1],'lon':coordinates[0],'trueLoc':coordsWork}
+        geoCache[cacheRef] = output
+        return output
 
 
 
@@ -632,7 +647,7 @@ def dictToJsonFix(jsonOut):
 
 
 
-def reformatOld(directory, lists, cfg):
+def reformatOld(directory, lists, cfg, geoCache):
     """Keeps old content up to date with latests queries & settings"""
     homeDirectory = directory
     keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
@@ -689,7 +704,7 @@ def reformatOld(directory, lists, cfg):
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
-                    geoType = isInBox(cfg,tweet)
+                    geoType = isInBox(cfg,geoCachetweet)
                     if geoType['inBox'] or cfg['KeepUnlocated']:
                         timeData = outTime(localTime(tweet,cfg))
                         collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
@@ -752,9 +767,11 @@ def reformatOld(directory, lists, cfg):
             print "complete"""
         outFile.close()
         print "...complete"
+        return geoCache
              
     else:
         print "Directory empty, reformat skipped"
+        return geoCache
 
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
