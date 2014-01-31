@@ -464,7 +464,7 @@ def patientGeoCoder(request):
     """Patient geocoder, will wait if API rate limit hit"""
     gCoder = geocoders.GoogleV3()
     tries = 0
-    limit = 5
+    limit = 7
     delay = 10
     while True:
         try:
@@ -501,7 +501,7 @@ def isInBox(cfg,geoCache,status):
             coordinates = coordinates['coordinates']
             hasCoords = True
     
-    cacheRef = str(coordinates) + str(userLoc)
+    cacheRef = unicode(coordinates) + unicode(userLoc)
     if cacheRef  in geoCache.keys():
         return geoCache[cacheRef]
     
