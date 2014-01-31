@@ -489,14 +489,14 @@ def patientGeoCoder(request):
     """Patient geocoder, will wait if API rate limit hit"""
     gCoder = geocoders.GoogleV3()
     tries = 0
-    limit = 5
-    delay = 60
+    limit = 2
+    delay = 6
     while True:
         try:
             return gCoder.geocode(request)
         except:
             tries +=1
-            if tries == limit:
+            if tries == limit+1:
                 print "\nUnable to geoCode", request, '\n'
                 return "timeOut", ('NaN','NaN')
             time.sleep(delay)

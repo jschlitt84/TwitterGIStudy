@@ -15,7 +15,7 @@ while True:
     
     content = fileIn.readlines()
     
-    print format+"\n\nLoading URL list",end
+    print format+"\n\n(Re)Loading URL list",end
     
     for line in content:
         if '.url=' in line.replace(' ',''):
