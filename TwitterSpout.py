@@ -42,34 +42,34 @@ def postTweet(api,text,image):
         
 
                                                       
-def getTweets(login, cfg, conditions, qualifiers, exclusions):
+def getTweets(login, cfg, conditions, qualifiers, exclusions, geoCache):
     """selects method of tweet aquisition"""
     if cfg['Method'].lower() == 'stream':
-        getViaStream(login, cfg, conditions, qualifiers, exclusions)
+        getViaStream(login, cfg, conditions, qualifiers, exclusions, geoCache)
     elif cfg['Method'].lower() == 'search':
-        getViaSearch(login, cfg, conditions, qualifiers, exclusions)
+        getViaSearch(login, cfg, conditions, qualifiers, exclusions, geoCache)
     getViaStream(login, cfg, conditions, qualifiers, exclusions)
         
         
         
 
-def getViaSearch(login, cfg, conditions, qualifiers, exclusions):
+def getViaSearch(login, cfg, conditions, qualifiers, exclusions, geoCache):
     """acquires tweets via search method"""
     print "\nSetting up search(es)"
     name = login['name']    
     filterType = cfg['FilterType'].lower()
-    seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
+    seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null',geoCache)
     seeker.run()
         
         
                
-def getViaStream(login, cfg, conditions, qualifiers, exclusions):
+def getViaStream(login, cfg, conditions, qualifiers, exclusions, geoCache):
     """acquires tweets via geo stream"""
     print "\nSetting up listener(s)"
     name = login['name']
     filterType = cfg['FilterType'].lower()
 
-    ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name,'null')
+    ear = giListener(conditions,qualifiers,exclusions,login['api'],cfg,name,'null',geoCache)
     print "Logging in via", name,"credentials file"
         
     print "Starting stream:", name, '\n'
@@ -120,7 +120,7 @@ def main():
         lists = temp['lists']
         login = getLogins(directory,[temp['login']])[temp['login']]
         cfg['Directory'] = directory
-        reformatOld(directory,lists,cfg)
+        geoCache = reformatOld(directory,lists,cfg)
         
     else: 
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
@@ -130,7 +130,7 @@ def main():
         logins = getLogins(directory, cfg['Logins'])
         lists = updateWordBanks(directory, cfg)
         
-        reformatOld(directory,lists,cfg) 
+        geoCache = reformatOld(directory,lists,cfg) 
         
         print "\nPlease choose login number:"
         if userLogin == 'null':
@@ -154,6 +154,6 @@ def main():
     login['auth'] = temp['auth']
     login['api'] = temp['api']
     login['name'] = userLogin
-    getTweets(login,cfg,lists['conditions'],lists['qualifiers'],lists['exclusions'])
+    getTweets(login,cfg,lists['conditions'],lists['qualifiers'],lists['exclusions'],geoCache)
 
 main()
