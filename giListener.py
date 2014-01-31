@@ -91,13 +91,13 @@ class giSeeker():
                 lists = temp['lists']
                 self.cfg = temp['config']
                 self.cfg['_login_'] = temp['login']
-                reformatOld(directory, lists, self.cfg)
+                reformatOld(directory, lists, self.cfg, self.geoCache)
                 print "Sending results to GDI user"
                 sendCSV(self.cfg,directory)
                 
             else:
                 lists = updateWordBanks(directory, self.cfg)
-                reformatOld(directory, lists, self.cfg)
+                reformatOld(directory, lists, self.cfg, self.geoCache)
                 self.cfg = getConfig(directory+self.cfg['ConfigFile'])
                 
             if self.cfg['UseStacking']:
