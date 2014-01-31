@@ -2,6 +2,7 @@
 *.pyc
 *nocopy*
 *local*
+*geoPickle*
 output/
 test.csv
 configTest

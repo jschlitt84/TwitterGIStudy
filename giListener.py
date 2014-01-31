@@ -162,6 +162,8 @@ class giSeeker():
             giSeeker.flushTweets(self)
         else:
             print "No tweets found for date"
+        print "Updating geoPickle"
+        updateGeoPickle(self.geoCache,self.cfg['Directory']+pickleName)
 
 
 
@@ -497,7 +499,9 @@ class giListener(tweepy.StreamListener):
         with open(self.pathOut+'FilteredTweets_'+self.cfg['FileName']+'_'+timeStamp+'.json', 'w') as outFile:
             json.dump(meaningful,outFile)
         outFile.close()
-        giListener.flushTweets(self)  
+        giListener.flushTweets(self) 
+        print "Updating geoPickle"
+        updateGeoPickle(self.geoCache,self.cfg['Directory']+pickleName) 
     
     def on_status(self, status):
         try:

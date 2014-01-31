@@ -28,15 +28,29 @@ timeArgs = '%a %d %b %Y %H:%M:%S'
 gdiEmail = 'Subscriber Email,CC Email'
 gdiParams = 'Param Name,Param Key'
 gdiLists = 'Conditions,Qualifiers,Exclusions'
+pickleName = "GeoPickle.txt"
+
+
 
 def updateGeoPickle(dictionary,fileRef):
-    pickleIn = openWhenReady(fileRef, "rb")
-    pickleLoaded = pickle.load(pickleIn)
-    dictionary.update(pickleLoaded)
-    pickleIn.close()
-    pickleOut = openWhenReady(fileRef,"wb")
-    pickle.dump(dictionary, pickleOut)
-    pickleOut.close()
+    """Updates file & memory version of geoPickle"""
+    pickleExists = os.path.isfile(fileRef)
+    if pickleExists:
+        pickleIn = openWhenReady(fileRef, "rb")
+        pickleLoaded = pickle.load(pickleIn)
+        pickleIn.close()
+        if dictionary.keys() != pickleLoaded.keys():
+            dictionary.update(pickleLoaded)
+            needsWrite = True
+        else:
+            needsWrite = False      
+    else:
+        needsWrite = True
+    
+    if needsWrite:
+        pickleOut = openWhenReady(fileRef,"wb")
+        pickle.dump(dictionary, pickleOut)
+        pickleOut.close()
     
     
 
@@ -474,8 +488,8 @@ def patientGeoCoder(request):
     """Patient geocoder, will wait if API rate limit hit"""
     gCoder = geocoders.GoogleV3()
     tries = 0
-    limit = 7
-    delay = 10
+    limit = 5
+    delay = 60
     while True:
         try:
             return gCoder.geocode(request)
@@ -483,7 +497,7 @@ def patientGeoCoder(request):
             tries +=1
             if tries == limit:
                 print "\nUnable to geoCode", request, '\n'
-                return None
+                return "timeOut", ('NaN','NaN')
             time.sleep(delay)
             
             
@@ -554,6 +568,9 @@ def isInBox(cfg,geoCache,status):
     
     if place == None or place == 'None':
         place = 'NaN'
+    
+    if place == "timeOut":
+        return {'inBox':False,'text':'NoCoords','place':'NaN','lat':'NaN','lon':'NaN','trueLoc':coordsWork}
         
     try:
         if sorted([cfg['Lat1'],cfg['Lat2'],coordinates[1]])[1] != coordinates[1]:

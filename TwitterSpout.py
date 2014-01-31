@@ -1,11 +1,9 @@
 import sys, os
 import json
 import tweepy
-import datetime
 import time
 import random
 
-from copy import deepcopy
 from GISpy import *
 from giListener import *
 
@@ -120,7 +118,9 @@ def main():
         lists = temp['lists']
         login = getLogins(directory,[temp['login']])[temp['login']]
         cfg['Directory'] = directory
-        geoCache = reformatOld(directory,lists,cfg,dict())
+        geoCache = dict()
+        updateGeoPickle(geoCache,directory+pickleName)
+        reformatOld(directory,lists,cfg,dict())
         
     else: 
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
@@ -129,8 +129,9 @@ def main():
         cfg['ConfigFile'] = configFile
         logins = getLogins(directory, cfg['Logins'])
         lists = updateWordBanks(directory, cfg)
-        
-        geoCache = reformatOld(directory,lists,cfg, dict()) 
+        geoCache = dict()
+        updateGeoPickle(geoCache,directory+pickleName)
+        reformatOld(directory,lists,cfg, dict()) 
         
         print "\nPlease choose login number:"
         if userLogin == 'null':

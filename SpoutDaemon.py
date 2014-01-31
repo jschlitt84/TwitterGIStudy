@@ -1,41 +1,47 @@
 import subprocess
 import time
 
-try:
-    fileIn = open(sys.argv[1])
-except:
-    fileIn = open('gdiAccounts')
-
-urls = set()
-delay = 1200
-
-content = fileIn.readlines()
-
-print "Loading URL list"
-
-for line in content:
-    if '.url=' in line.replace(' ',''):
-        urls.add(line[line.index('https://'):-1])
-        
-print "GDI URLS:", urls
+format = "\033[91m\033[1m"
+end = "\033[0m"
 
 while True:
+    try:
+        fileIn = open(sys.argv[1])
+    except:
+        fileIn = open('gdiAccounts')
+    
+    urls = set()
+    delay = 1200
+    
+    content = fileIn.readlines()
+    
+    print format+"\n\nLoading URL list",end
+    
+    for line in content:
+        if '.url=' in line.replace(' ',''):
+            urls.add(line[line.index('https://'):-1])
+        
+    print format + "GDI URLS:", urls,end
     running = set()
+    
     ps = subprocess.Popen(['ps', 'aux'], stdout=subprocess.PIPE).communicate()[0]
     processes = ps.split('\n')
     
+    print "\n"
     for process in processes:
         if 'python' in process:
             for url in urls:
                 if url in process:
                     foundUrl = process[process.index('https://'):]
-                    print "RUNNING:",foundUrl
+                    print format+"RUNNING:",foundUrl,end
                     running.add(foundUrl)
     
     notRunning = set.difference(urls,running)
-    print "\nNOT RUNNING:", notRunning
-    print "'"+url+"'"
+    for item in notRunning:
+        print format+"NOT RUNNING:",item.replace('\n',''),end
+    print "\n"
     for url in notRunning:
         subprocess.Popen(['python','TwitterSpout.py', url])
+        time.sleep(30)
         None
     time.sleep(delay)
