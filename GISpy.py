@@ -7,6 +7,7 @@ import pandas as pd
 import unicodedata
 import tweepy
 import smtplib
+import pickle
 
 import gDocsImport as gd
 
@@ -28,7 +29,16 @@ gdiEmail = 'Subscriber Email,CC Email'
 gdiParams = 'Param Name,Param Key'
 gdiLists = 'Conditions,Qualifiers,Exclusions'
 
-
+def updateGeoPickle(dictionary,fileRef):
+    pickleIn = openWhenReady(fileRef, "rb")
+    pickleLoaded = pickle.load(pickleIn)
+    dictionary.update(pickleLoaded)
+    pickleIn.close()
+    pickleOut = openWhenReady(fileRef,"wb")
+    pickle.dump(dictionary, pickleOut)
+    pickleOut.close()
+    
+    
 
 def getDelay(self,elapsed):
     """Calculates optimum stacked search delay for API rate limits"""
