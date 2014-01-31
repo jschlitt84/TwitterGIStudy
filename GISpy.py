@@ -704,7 +704,7 @@ def reformatOld(directory, lists, cfg, geoCache):
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
-                    geoType = isInBox(cfg,geoCachetweet)
+                    geoType = isInBox(cfg,geoCache,tweet)
                     if geoType['inBox'] or cfg['KeepUnlocated']:
                         timeData = outTime(localTime(tweet,cfg))
                         collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
