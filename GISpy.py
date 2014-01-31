@@ -514,6 +514,7 @@ def isInBox(cfg,geoCache,status):
     hasPlace = False
     coordsWork = False
     place = 'NaN'
+    fromFile = False
 
     if type(status) is dict:
         userLoc = status['user']['location']
@@ -531,11 +532,23 @@ def isInBox(cfg,geoCache,status):
     cacheRef = unicode(coordinates) + unicode(userLoc)
     if cacheRef  in geoCache.keys():
         print "DEBOOO: Inboxed from memory", cacheRef
-        return geoCache[cacheRef]
-    print "DEBOOO: Looking up", cacheRef
+        fromFile = True
+        loaded = geoCache[cacheRef]
+        if loaded['lat'] != 'NaN' and loaded['lon'] != 'NaN':
+            place = loaded['place']
+            coordinates = [loaded['lon'],loaded['lat']]
+            hasPlace = True
+            hasCoords = True
+            coordsWork = True
+        else:
+            return loaded
+    else:        
+        print "DEBOOO: Looking up", cacheRef
+    
     
     if type(coordinates) is list:
         coordsWork = len(coordinates) == 2
+        
             
     if (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None" and not coordsWork:
         if ':' in userLoc:
