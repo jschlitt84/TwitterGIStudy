@@ -34,6 +34,7 @@ pickleName = "GeoPickle.txt"
 
 def updateGeoPickle(dictionary,fileRef):
     """Updates file & memory version of geoPickle"""
+    length1 = len(dictionary.keys())
     pickleExists = os.path.isfile(fileRef)
     if pickleExists:
         pickleIn = openWhenReady(fileRef, "rb")
@@ -48,7 +49,8 @@ def updateGeoPickle(dictionary,fileRef):
         needsWrite = True
     
     if needsWrite:
-        print "Updating master geoPickle"
+        length2 = len(dictionary.keys())
+        print "Updating master geoPickle,", length2-length1,"new locations added with",length2,"total in cache"
         pickleOut = openWhenReady(fileRef,"wb")
         pickle.dump(dictionary, pickleOut)
         pickleOut.close()
