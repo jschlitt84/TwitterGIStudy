@@ -488,7 +488,7 @@ def geoString(geo):
 
 
 
-def patientGeoCoder(request):
+def patientGeoCoder(request,cfg):
     """Patient geocoder, will wait if API rate limit hit"""
     gCoder = geocoders.GoogleV3()
     tries = 0
@@ -499,7 +499,7 @@ def patientGeoCoder(request):
             return gCoder.geocode(request)
         except:
             tries +=1
-            if tries == limit+1:
+            if tries == limit+1 or not cfg['PatientGeocoding']:
                 print "\nUnable to geoCode", request, '\n'
                 return "timeOut", ('NaN','NaN')
             time.sleep(delay)
@@ -530,10 +530,9 @@ def isInBox(cfg,geoCache,status):
             coordinates = coordinates['coordinates']
             hasCoords = True
     
-    cacheRef = unicode(coordinates) + unicode(userLoc)
+    cacheRef = (unicode(coordinates) + unicode(userLoc)).lower()
     if cacheRef  in geoCache.keys():
         print "DEBOOO: Inboxed from memory", cacheRef
-        fromFile = True
         loaded = geoCache[cacheRef]
         if loaded['lat'] != 'NaN' and loaded['lon'] != 'NaN':
             place = loaded['place']
@@ -563,7 +562,7 @@ def isInBox(cfg,geoCache,status):
             #lookup coords by location name
             try:
                 userLoc = str(userLoc).replace('Va','Virginia')
-                place, (lat, lng) = patientGeoCoder(userLoc)
+                place, (lat, lng) = patientGeoCoder(userLoc,cfg)
                 time.sleep(.15); coordinates = [lng,lat] 
                 hasPlace = True
                 hasCoords = True
@@ -580,7 +579,7 @@ def isInBox(cfg,geoCache,status):
         #status['coordinates'] = coordinates
         if not hasPlace:
             try:
-                place, (lat, lng) = patientGeoCoder(str(coordinates[1])+','+str(coordinates[0]))
+                place, (lat, lng) = patientGeoCoder(str(coordinates[1])+','+str(coordinates[0]),cfg)
                 time.sleep(.15)
             except:
                 None
@@ -872,7 +871,7 @@ def getConfig(directory):
                 'KeepExcluded':True, 'method':'search',
                 'Logins':'NoLoginsFound','UseGDI':False,
                 'UseStacking':False,'KeepUnlocated':False,
-                'PickleInterval':500}
+                'PickleInterval':500,'PatientGeocoding':True}
     
     if type(directory) is str:
         if directory == "null":
