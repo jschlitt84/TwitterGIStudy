@@ -8,7 +8,7 @@ import os
 from GISpy import *
 
 class giSeeker():
-    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
+    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace, geoCache):
         self.delay = 30
         self.qualifiers = qualifiers
         self.conditions = conditions
@@ -19,6 +19,7 @@ class giSeeker():
         self.searchDelay = 600
         self.rateLimit = 180
         self.rateIncrement = 900
+        self.geoCache = geoCache
         
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
@@ -336,7 +337,8 @@ class giSeeker():
                 #print json.loads(status.json).keys()
                 percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
                 
-                geoType = isInBox(self.cfg,status)
+                
+                geoType = isInBox(self.cfg, self.geoCache, status)
                 tweetLocalTime = outTime(localTime(status,self.cfg))
                 inBox += geoType['inBox']
                 
@@ -421,7 +423,7 @@ class giSeeker():
     
     
 class giListener(tweepy.StreamListener):
-    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace):
+    def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace, geoCache):
         self.qualifiers = qualifiers
         self.conditions = conditions
         self.api = api
@@ -429,6 +431,7 @@ class giListener(tweepy.StreamListener):
         self.exclusions = exclusions
         self.cfg = cfg
         self.testSpace = testSpace
+        self.geoCache = geoCache
         giListener.flushTweets(self)
         print "Initiated listener '%s' with %s conditions, %s qualifiers, and %s exclusions" % (name, len(conditions), len(qualifiers), len(exclusions))
         
@@ -502,7 +505,8 @@ class giListener(tweepy.StreamListener):
                 giListener.saveTweets(self)
             text = status.text.replace('\n',' ')
             tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
-            geoType = isInBox(self.cfg,status)
+            
+            geoType =  isInBox(self.cfg, self.geoCache, status)
 
             percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
             loginInfo = "\033[94m%s:%s%%\033[0m" % (self.name,percentFilled)
