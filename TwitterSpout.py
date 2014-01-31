@@ -130,7 +130,7 @@ def main():
         logins = getLogins(directory, cfg['Logins'])
         lists = updateWordBanks(directory, cfg)
         
-        geoCache = reformatOld(directory,lists,cfg) 
+        geoCache = reformatOld(directory,lists,cfg, dict()) 
         
         print "\nPlease choose login number:"
         if userLogin == 'null':
