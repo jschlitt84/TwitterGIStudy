@@ -120,7 +120,8 @@ def main():
         cfg['Directory'] = directory
         geoCache = dict()
         updateGeoPickle(geoCache,directory+pickleName)
-        reformatOld(directory,lists,cfg,dict())
+        reformatOld(directory,lists,cfg,geoCache)
+        updateGeoPickle(geoCache,directory+pickleName)
         
     else: 
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
@@ -131,7 +132,9 @@ def main():
         lists = updateWordBanks(directory, cfg)
         geoCache = dict()
         updateGeoPickle(geoCache,directory+pickleName)
-        reformatOld(directory,lists,cfg, dict()) 
+        reformatOld(directory,lists,cfg, geoCache) 
+        updateGeoPickle(geoCache,directory+pickleName)
+        
         
         print "\nPlease choose login number:"
         if userLogin == 'null':
