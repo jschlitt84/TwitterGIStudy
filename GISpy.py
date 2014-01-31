@@ -530,6 +530,7 @@ def isInBox(cfg,geoCache,status):
     
     cacheRef = unicode(coordinates) + unicode(userLoc)
     if cacheRef  in geoCache.keys():
+        print "DEBOOO: Inboxed from memory", cacheRef
         return geoCache[cacheRef]
     
     if type(coordinates) is list:
@@ -731,6 +732,8 @@ def reformatOld(directory, lists, cfg, geoCache):
                 count += 1
                 if count%250 == 0:
                     print "\t",count,"tweets sorted"
+                if count%cfg['PickleInterva']:
+                    updateGeoPickle(geoCache,cfg['Directory']+pickleName)
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
@@ -853,7 +856,8 @@ def getConfig(directory):
                 'KeepAccepted':True,'KeepPartial':True,
                 'KeepExcluded':True, 'method':'search',
                 'Logins':'NoLoginsFound','UseGDI':False,
-                'UseStacking':False,'KeepUnlocated':False}
+                'UseStacking':False,'KeepUnlocated':False,
+                'PickleInterval':500}
     
     if type(directory) is str:
         if directory == "null":
