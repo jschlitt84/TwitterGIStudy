@@ -120,7 +120,7 @@ def main():
         lists = temp['lists']
         login = getLogins(directory,[temp['login']])[temp['login']]
         cfg['Directory'] = directory
-        geoCache = reformatOld(directory,lists,cfg)
+        geoCache = reformatOld(directory,lists,cfg,dict())
         
     else: 
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)
