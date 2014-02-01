@@ -872,7 +872,8 @@ def getConfig(directory):
                 'KeepExcluded':True, 'method':'search',
                 'Logins':'NoLoginsFound','UseGDI':False,
                 'UseStacking':False,'KeepUnlocated':False,
-                'PickleInterval':500,'PatientGeocoding':True}
+                'PickleInterval':500,'PatientGeocoding':True,
+                'OnlyKeepNLTK':False}
     
     if type(directory) is str:
         if directory == "null":
