@@ -212,7 +212,7 @@ class giSeeker():
         text = '"'+self.conditions[0]+'"'
         for item in self.conditions[1:]:
             entry = ' OR "' + item + '"'
-            if len(text + entry) >= 250:
+            if len(text + entry) >= 300:
                 self.queries.append(text + ' -"rt @"')
                 text = '"'+item+'"'
             else:
