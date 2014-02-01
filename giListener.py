@@ -93,7 +93,10 @@ class giSeeker():
                 self.cfg['_login_'] = temp['login']
                 reformatOld(directory, lists, self.cfg, self.geoCache)
                 print "Sending results to GDI user"
-                sendCSV(self.cfg,directory)
+                try:
+                    sendCSV(self.cfg,directory)
+                except:
+                    print "Unable to send email"
                 
             else:
                 lists = updateWordBanks(directory, self.cfg)
@@ -232,7 +235,7 @@ class giSeeker():
                         
                         #print "DEBOOO MATRIX", len(self.stackLastTweet), len(self.stackLastTweet[0])
                         while not loggedIn or not ranSearch:  
-                            if True:
+                            try:
                                 cellCollected = self.api.search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
@@ -258,7 +261,7 @@ class giSeeker():
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
                                 time.sleep(stackDelay)
-                            else:
+                            except:
                                 loggedIn = False
                                 while not loggedIn:
                                     print "Login error, will sleep 60 seconds and attempt reconnection"
