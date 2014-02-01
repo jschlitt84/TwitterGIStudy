@@ -50,7 +50,7 @@ def updateGeoPickle(dictionary,fileRef):
         needsWrite = True
     
     length2 = len(dictionary.keys())
-    if needsWrite and loadedLength != 0 and (length2-length) > 25:
+    if needsWrite and loadedLength != 0 and (length2-length1) > 25:
         print "Updating master geoPickle,", length2-length1,"new locations added with",length2,"total in cache"
         pickleOut = openWhenReady(fileRef,"wb")
         pickle.dump(dictionary, pickleOut)
