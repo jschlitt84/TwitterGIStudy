@@ -6,7 +6,7 @@ format = "\033[91m\033[1m"
 end = "\033[0m"
 secondsPerDay = 86400
 daysToRefresh = 5
-delay = 1200
+delay = 600
 count = 0
 sleepEvery = (secondsPerDay*daysToRefresh)/delay
 
@@ -52,7 +52,10 @@ while True:
         print format+"NOT RUNNING:",item.replace('\n',''),end
     print "\n"
     for url in notRunning:
-        subprocess.Popen(['python','TwitterSpout.py', url])
-        time.sleep(30)
-        None
+        try:
+            subprocess.Popen(['python','TwitterSpout.py', url])
+            time.sleep(30)
+        except:
+            print "Process",url,"has stopped"
+            None
     time.sleep(delay)
