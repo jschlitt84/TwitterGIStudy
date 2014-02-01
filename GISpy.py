@@ -3,7 +3,7 @@ import json, csv
 import random
 import datetime,time
 import os, shutil
-import pandas as pd
+#import pandas as pd
 import unicodedata
 import tweepy
 import smtplib
