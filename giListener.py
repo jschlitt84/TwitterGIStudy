@@ -4,8 +4,10 @@ import datetime, time
 import json
 import os
 
+import TweetMatch as tw.getClassifier
 
 from GISpy import *
+
 
 class giSeeker():
     def __init__(self, conditions, qualifiers, exclusions, api, cfg, name, testSpace, geoCache):
@@ -20,6 +22,16 @@ class giSeeker():
         self.rateLimit = 180
         self.rateIncrement = 900
         self.geoCache = geoCache
+        self.useNLTK = False
+        
+        if cfg['OnlyKeepNLTK']:
+            self.useNLTK = True
+            self.cfg['OnlyKeepNLTK'] = cfg['OnlyKeepNLTK'].split('_')
+            try:
+                self.NLTK = tw.getClassifier(cfg['NLTKFile'])
+            except:
+                self.NLTK = tw.getClassifier('null')
+        
         
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
@@ -242,6 +254,10 @@ class giSeeker():
                                                         result_type="recent",
                                                         count = 100)
                                 #print query, geoString(geoPoint)
+                                if self.useNLTK:
+                                    cellCollected = [status for status in cellCollected if tm.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
+                                
+                                
                                 
                                 if len(cellCollected)>0:
                                     collected += cellCollected
@@ -295,11 +311,16 @@ class giSeeker():
             
                             #Method 2: Since id stream, may miss if keyword set yields over 100 new results
     
-                            collected += self.api.search(q = query, 
+                            cellCollected = self.api.search(q = query, 
                                                     since_id = self.lastTweet,  
                                                     geocode = self.geo,
                                                     result_type="recent",
                                                     count = 100)
+                            if self.useNLTK:
+                                    cellCollected = [status for status in cellCollected if tm.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
+                            
+                            collecterd += cellCollected    
+                                
                             ranSearch = True
                         except:
                             loggedIn = False
@@ -317,7 +338,7 @@ class giSeeker():
             inBox = mappable = 0
             
             hasResults = len(collected) != 0
-                
+            
             
             if hasResults:
                 collected = uniqueJson(collected)
