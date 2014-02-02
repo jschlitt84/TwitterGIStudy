@@ -23,7 +23,7 @@ def spreadConnect(userName, __password, fileName):
         client.ProgrammaticLogin()
         print "Connected to Google Spreadsheet via username %s & password %s" % (userName,__password)
     except:
-        print "Error, Google Spreadhseet Login Failed, username %s & password %s" % (userName,__password)
+        print "Error, Google Spreadsheet Login Failed, username %s & password %s" % (userName,__password)
         client.password = None
         quit()
     return client
