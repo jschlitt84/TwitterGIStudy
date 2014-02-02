@@ -58,6 +58,9 @@ def getViaSearch(login, cfg, conditions, qualifiers, exclusions, geoCache):
     if	cfg['MultiLogin']:
 	name = 'multi'
 	login = dict([[key,login[key]['api']] for key in login.keys()])
+	print cfg['_login_']
+	quit()
+	cfg['_login_'] = login
 	seeker = giSeeker(conditions,qualifiers,exclusions,login,cfg,name,'null',geoCache)
     else:
 	name = login['name']
