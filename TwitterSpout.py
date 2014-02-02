@@ -154,7 +154,7 @@ def main():
     
     cfg['_login_'] = login
     cfg['Directory'] = directory
-    if type(login) = list:
+    if type(login) is list:
         for pos in range(len(login)):
             temp = getAuth(login[pos])
             login[pos]['auth'] = temp['auth']
