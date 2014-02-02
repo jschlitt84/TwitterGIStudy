@@ -23,7 +23,6 @@ class giSeeker():
         self.useNLTK = False
         
         if cfg['OnlyKeepNLTK'] != False:
-            print "DEBOO IMPORTING NLTK"
             global TweetMatch
             import TweetMatch
             self.useNLTK = True
@@ -32,6 +31,9 @@ class giSeeker():
                 self.cfg['OnlyKeepNLTK'] = temp.split('_')
             if type(temp) is list:
                 self.cfg['OnlyKeepNLTK'] = temp
+            self.cfg['OnlyKeepNLTK'] = [str(key) for key in self.cfg['OnlyKeepNLTK']]
+            print "DEBOO ONLY KEEP", self.cfg['OnlyKeepNLTK']
+            
             
             try:
                 self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
