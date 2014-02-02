@@ -254,6 +254,7 @@ class giSeeker():
                     elapsed = timeNow - self.stackLast
                     self.stackLast = timeNow
                     stackDelay = getDelay(self, elapsed)
+                    print "DEBOOO"; stackDelay = .1
                     print "Running %s geoStack queries at 1 query every %s seconds" % (self.stackQueries,stackDelay)
             
             queryCount = -1
