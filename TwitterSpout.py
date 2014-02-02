@@ -154,10 +154,17 @@ def main():
     
     cfg['_login_'] = login
     cfg['Directory'] = directory
-    temp = getAuth(login)
-    login['auth'] = temp['auth']
-    login['api'] = temp['api']
-    login['name'] = userLogin
+    if type(login) = list:
+        for pos in range(len(login)):
+            temp = getAuth(login[pos])
+            login[pos]['auth'] = temp['auth']
+            login[pos]['api'] = temp['api']
+            time.sleep(3)
+    else:
+        temp = getAuth(login)
+        login['auth'] = temp['auth']
+        login['api'] = temp['api']
+        login['name'] = userLogin
     getTweets(login,cfg,lists['conditions'],lists['qualifiers'],lists['exclusions'],geoCache)
 
 main()
