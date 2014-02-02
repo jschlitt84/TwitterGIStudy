@@ -61,7 +61,7 @@ class giSeeker():
             self.geo = geoString(getGeo(cfg))
             
         if type(api) is list:
-            if self.geo = "STACK":
+            if self.geo == "STACK":
                 print "Using multiple API login method"
                 self.multiAPI = True
             else:
