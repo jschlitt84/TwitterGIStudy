@@ -137,7 +137,7 @@ def classifySingle(text, classifier):
             print "Result:", resultKey[result]
         except:
             print "Result:", result
-    return result
+    return str(result)
      
 def getClassifier(tweetfile):
     print "Loading content & preparing text"
