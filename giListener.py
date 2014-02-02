@@ -3,7 +3,7 @@ import datetime, time
 import json
 import os
 
-from random import randint, uniform
+from random import randint, uniform, choice
 from GISpy import *
 
 
@@ -60,13 +60,13 @@ class giSeeker():
         else:
             self.geo = geoString(getGeo(cfg))
             
-        if type(api) is list:
+        if type(api) is dict:
             if self.geo == "STACK":
                 print "Using multiple API login method"
                 self.multiAPI = True
             else:
                 print "Using single API login method"
-                self.api = self.api[0]
+                self.api = self.api[self.api.keys()[0]]
                 self.multiAPI = False
         else:
             print "Using single API login method"
@@ -254,8 +254,6 @@ class giSeeker():
                     elapsed = timeNow - self.stackLast
                     self.stackLast = timeNow
                     stackDelay = getDelay(self, elapsed)
-                    if self.multiAPI:
-                        stackDelay = stackDelay/len(self.api)
                     print "Running %s geoStack queries at 1 query every %s seconds" % (self.stackQueries,stackDelay)
             
             queryCount = -1
@@ -270,8 +268,8 @@ class giSeeker():
                         while not loggedIn or not ranSearch:  
                             try:
                                 if self.multiAPI:
-                                    choice = randint(0,len(self.api)-1)
-                                    cellCollected = self.api[choice].search(q = query, 
+                                    chosen = choice(self.api.keys())
+                                    cellCollected = self.api[chosen].search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
@@ -311,7 +309,7 @@ class giSeeker():
                                     time.sleep(60)
                                     try:
                                         if self.multAPI:
-                                            self.api[choice] = getAuth(self.cfg['_login_'][choice])['api']
+                                            self.api[chosen] = getAuth(self.cfg['_login_'][choice])['api']
                                         else:
                                             self.api = getAuth(self.cfg['_login_'])['api']
                                         print "Login successfull"

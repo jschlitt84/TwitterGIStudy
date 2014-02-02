@@ -54,9 +54,14 @@ def getTweets(login, cfg, conditions, qualifiers, exclusions, geoCache):
 def getViaSearch(login, cfg, conditions, qualifiers, exclusions, geoCache):
     """acquires tweets via search method"""
     print "\nSetting up search(es)"
-    name = login['name']    
     filterType = cfg['FilterType'].lower()
-    seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null',geoCache)
+    if	cfg['MultiLogin']:
+	name = 'multi'
+	login = dict([[key,login[key]['api']] for key in login.keys()])
+	seeker = giSeeker(conditions,qualifiers,exclusions,login,cfg,name,'null',geoCache)
+    else:
+	name = login['name']
+	seeker = giSeeker(conditions,qualifiers,exclusions,login['api'],cfg,name,'null',geoCache)
     seeker.run()
         
         
@@ -118,6 +123,7 @@ def main():
         lists = temp['lists']
         if type(temp['login']) is list:
             login = getLogins(directory,temp['login'])
+	    cfg['MultiLogin'] = True
         else:
             login = getLogins(directory,[temp['login']])[temp['login']]
         cfg['Directory'] = directory
@@ -157,11 +163,11 @@ def main():
     
     cfg['_login_'] = login
     cfg['Directory'] = directory
-    if type(login) is list:
-        for pos in range(len(login)):
-            temp = getAuth(login[pos])
-            login[pos]['auth'] = temp['auth']
-            login[pos]['api'] = temp['api']
+    if cfg['MultiLogin']:
+        for key in login.keys():
+            temp = getAuth(login[key])
+            login[key]['auth'] = temp['auth']
+            login[key]['api'] = temp['api']
             time.sleep(3)
     else:
         temp = getAuth(login)

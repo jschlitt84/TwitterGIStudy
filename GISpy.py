@@ -113,6 +113,8 @@ def fillBox(cfg,self):
         return {"list":box,'radius':circumrMiles}"""
     
     secPerSearch = float(self.rateIncrement)/self.rateLimit
+    if self.multiAPI:
+	secPerSearch = secPerSearch/len(self.api.keys())
     queries = len(self.queries); locations = len(box)
     searchPerHour = 3600/secPerSearch
     completePerHour = float(searchPerHour)/(queries*locations)
@@ -878,7 +880,7 @@ def getConfig(directory):
                 'Logins':'NoLoginsFound','UseGDI':False,
                 'UseStacking':False,'KeepUnlocated':False,
                 'PickleInterval':500,'PatientGeocoding':True,
-                'OnlyKeepNLTK':False}
+                'OnlyKeepNLTK':False,'MultiLogin':False}
     
     if type(directory) is str:
         if directory == "null":
