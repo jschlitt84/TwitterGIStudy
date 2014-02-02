@@ -252,7 +252,7 @@ class giSeeker():
                         ranSearch = False
                         
                         while not loggedIn or not ranSearch:  
-                            if True:
+                            try:
                                 cellCollected = self.api.search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
@@ -277,7 +277,7 @@ class giSeeker():
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
                                 time.sleep(stackDelay)
-                            else:
+                            except:
                                 loggedIn = False
                                 while not loggedIn:
                                     print "Login error, will sleep 60 seconds and attempt reconnection"
@@ -293,7 +293,7 @@ class giSeeker():
                     loggedIn = True
                     ranSearch = False
                     while not loggedIn or not ranSearch:
-                        if True:
+                        try:
                             #Issue of stream pagination currently unresolved
                             #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
                             
@@ -322,7 +322,7 @@ class giSeeker():
                             collected += cellCollected    
                                 
                             ranSearch = True
-                        else:
+                        except:
                             loggedIn = False
                             while not loggedIn:
                                 print "Login error, will sleep 60 seconds and attempt reconnection"
