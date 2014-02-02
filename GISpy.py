@@ -213,6 +213,8 @@ def loadGDIAccount(gDocURL,directory):
         login = 'login5'
     else:
         login =  loginLine.split(' = ')[1].replace(' ','').replace('\n','')
+        if ',' in login:
+            login = login.split(',')
         
     found = False
     for line in content:
