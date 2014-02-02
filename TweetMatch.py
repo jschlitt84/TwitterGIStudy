@@ -131,12 +131,12 @@ def collectNGrams(categorized, degreesUsed):
 def classifySingle(text, classifier):
     temp = getNGrams(prepTweet(text),degreesToUse)
     result = classifier.classify(temp)
-    print "Query:", text
-    try:
-        print "Result:", resultKey[result]
-    except:
-        print "Result:", result
-    print "DEBOO RESULT:", result
+    if __name__ == '__main__':
+        print "Query:", text
+        try:
+            print "Result:", resultKey[result]
+        except:
+            print "Result:", result
     return result
      
 def getClassifier(tweetfile):
