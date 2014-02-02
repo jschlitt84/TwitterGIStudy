@@ -319,7 +319,7 @@ class giSeeker():
                             if self.useNLTK:
                                     cellCollected = [status for status in cellCollected if tm.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
                             
-                            collecterd += cellCollected    
+                            collected += cellCollected    
                                 
                             ranSearch = True
                         else:
