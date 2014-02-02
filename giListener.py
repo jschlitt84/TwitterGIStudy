@@ -24,6 +24,7 @@ class giSeeker():
         
         if cfg['OnlyKeepNLTK'] != False:
             print "DEBOO IMPORTING NLTK"
+            global TweetMatch
             import TweetMatch
             self.useNLTK = True
             temp = cfg['OnlyKeepNLTK']
