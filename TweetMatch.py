@@ -136,6 +136,7 @@ def classifySingle(text, classifier):
         print "Result:", resultKey[result]
     except:
         print "Result:", result
+    print "DEBOO RESULT:", result
     return result
      
 def getClassifier(tweetfile):
