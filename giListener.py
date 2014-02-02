@@ -293,7 +293,7 @@ class giSeeker():
                     loggedIn = True
                     ranSearch = False
                     while not loggedIn or not ranSearch:
-                        try:
+                        if:
                             #Issue of stream pagination currently unresolved
                             #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
                             
@@ -322,7 +322,7 @@ class giSeeker():
                             collecterd += cellCollected    
                                 
                             ranSearch = True
-                        except:
+                        else:
                             loggedIn = False
                             while not loggedIn:
                                 print "Login error, will sleep 60 seconds and attempt reconnection"
