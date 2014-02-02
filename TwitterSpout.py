@@ -57,10 +57,6 @@ def getViaSearch(login, cfg, conditions, qualifiers, exclusions, geoCache):
     filterType = cfg['FilterType'].lower()
     if	cfg['MultiLogin']:
 	name = 'multi'
-	login = dict([[key,login[key]['api']] for key in login.keys()])
-	print cfg['_login_']
-	quit()
-	cfg['_login_'] = login
 	seeker = giSeeker(conditions,qualifiers,exclusions,login,cfg,name,'null',geoCache)
     else:
 	name = login['name']
@@ -164,8 +160,6 @@ def main():
  
         login = logins[userLogin]
     
-    cfg['_login_'] = login
-    cfg['Directory'] = directory
     if cfg['MultiLogin']:
         for key in login.keys():
             temp = getAuth(login[key])
@@ -177,6 +171,10 @@ def main():
         login['auth'] = temp['auth']
         login['api'] = temp['api']
         login['name'] = userLogin
+        
+    cfg['_login_'] = login
+    cfg['Directory'] = directory
+    
     getTweets(login,cfg,lists['conditions'],lists['qualifiers'],lists['exclusions'],geoCache)
 
 main()
