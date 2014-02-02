@@ -30,11 +30,11 @@ def loadFile(text):
         text = defaultFile
     try:
         if type(text) is list:
-            fileIn = open(text[1],'rb')
+            fileIn = open(text[1],'rU')
         else:
-            fileIn = open(text,'rb')
+            fileIn = open(text,'rU')
     except:
-        fileIn = open(defaultFile,'rb')
+        fileIn = open(defaultFile,'rU')
     
     loaded = pd.read_csv(fileIn)
     
