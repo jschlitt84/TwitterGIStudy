@@ -4,7 +4,7 @@ import datetime, time
 import json
 import os
 
-import TweetMatch as tw.getClassifier
+import TweetMatch as tw
 
 from GISpy import *
 
