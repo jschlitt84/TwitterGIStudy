@@ -62,6 +62,8 @@ def updateGeoPickle(dictionary,fileRef):
 def getDelay(self,elapsed):
     """Calculates optimum stacked search delay for API rate limits"""
     secPerSearch = max(float(self.rateIncrement-elapsed)/self.rateLimit,0.05)
+    if self.multiAPI:
+	secPerSearch = secPerSearch/len(self.api.keys())
     return secPerSearch
 
 
