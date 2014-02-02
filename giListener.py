@@ -1,6 +1,5 @@
 import tweepy
 import datetime, time
-#import numpy
 import json
 import os
 
@@ -32,7 +31,6 @@ class giSeeker():
             if type(temp) is list:
                 self.cfg['OnlyKeepNLTK'] = temp
             self.cfg['OnlyKeepNLTK'] = [str(key) for key in self.cfg['OnlyKeepNLTK']]
-            print "DEBOO ONLY KEEP", self.cfg['OnlyKeepNLTK']
             
             
             try:
@@ -253,7 +251,6 @@ class giSeeker():
                         loggedIn = True
                         ranSearch = False
                         
-                        #print "DEBOOO MATRIX", len(self.stackLastTweet), len(self.stackLastTweet[0])
                         while not loggedIn or not ranSearch:  
                             if True:
                                 cellCollected = self.api.search(q = query, 
@@ -261,7 +258,7 @@ class giSeeker():
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
                                                         count = 100)
-                                #print query, geoString(geoPoint)
+                                
                                 if self.useNLTK:
                                     cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
                                 
