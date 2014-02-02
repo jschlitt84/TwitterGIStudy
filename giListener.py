@@ -293,7 +293,7 @@ class giSeeker():
                     loggedIn = True
                     ranSearch = False
                     while not loggedIn or not ranSearch:
-                        if:
+                        if True:
                             #Issue of stream pagination currently unresolved
                             #https://github.com/tweepy/tweepy/pull/296#commitcomment-3404913
                             
