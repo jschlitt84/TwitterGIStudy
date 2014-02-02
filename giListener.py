@@ -23,7 +23,8 @@ class giSeeker():
         self.useNLTK = False
         
         if cfg['OnlyKeepNLTK'] != False:
-            import TweetMatch as tw
+            print "DEBOO IMPORTING NLTK"
+            import TweetMatch
             self.useNLTK = True
             temp = cfg['OnlyKeepNLTK']
             if type(temp) is str:
@@ -32,9 +33,9 @@ class giSeeker():
                 self.cfg['OnlyKeepNLTK'] = temp
             
             try:
-                self.NLTK = tw.getClassifier(cfg['NLTKFile'])
+                self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
             except:
-                self.NLTK = tw.getClassifier('null')
+                self.NLTK = TweetMatch.getClassifier('null')
         
         
         giSeeker.flushTweets(self)
@@ -259,7 +260,7 @@ class giSeeker():
                                                         count = 100)
                                 #print query, geoString(geoPoint)
                                 if self.useNLTK:
-                                    cellCollected = [status for status in cellCollected if tw.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
+                                    cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
                                 
                                 
                                 
@@ -316,7 +317,7 @@ class giSeeker():
                                                     result_type="recent",
                                                     count = 100)
                             if self.useNLTK:
-                                    cellCollected = [status for status in cellCollected if tw.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
+                                    cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
                             
                             collected += cellCollected    
                                 
