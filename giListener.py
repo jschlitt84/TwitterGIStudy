@@ -4,8 +4,6 @@ import datetime, time
 import json
 import os
 
-import TweetMatch as tw
-
 from GISpy import *
 
 
@@ -25,6 +23,7 @@ class giSeeker():
         self.useNLTK = False
         
         if cfg['OnlyKeepNLTK']:
+            import TweetMatch as tw
             self.useNLTK = True
             temp = cfg['OnlyKeepNLTK']
             if type(temp) is str:
@@ -260,7 +259,7 @@ class giSeeker():
                                                         count = 100)
                                 #print query, geoString(geoPoint)
                                 if self.useNLTK:
-                                    cellCollected = [status for status in cellCollected if tm.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
+                                    cellCollected = [status for status in cellCollected if tw.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
                                 
                                 
                                 
@@ -317,7 +316,7 @@ class giSeeker():
                                                     result_type="recent",
                                                     count = 100)
                             if self.useNLTK:
-                                    cellCollected = [status for status in cellCollected if tm.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
+                                    cellCollected = [status for status in cellCollected if tw.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK']]
                             
                             collected += cellCollected    
                                 
