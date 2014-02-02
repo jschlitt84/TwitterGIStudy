@@ -22,7 +22,7 @@ class giSeeker():
         self.geoCache = geoCache
         self.useNLTK = False
         
-        if cfg['OnlyKeepNLTK']:
+        if cfg['OnlyKeepNLTK'] != False:
             import TweetMatch as tw
             self.useNLTK = True
             temp = cfg['OnlyKeepNLTK']
