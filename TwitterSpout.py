@@ -116,7 +116,10 @@ def main():
         temp = giSpyGDILoad(gDocURL,directory)
         cfg = temp['config']
         lists = temp['lists']
-        login = getLogins(directory,[temp['login']])[temp['login']]
+        if type(temp['login']) is list:
+            login = getLogins(directory,temp['login'])
+        else:
+            login = getLogins(directory,[temp['login']])[temp['login']]
         cfg['Directory'] = directory
         geoCache = dict()
         updateGeoPickle(geoCache,directory+pickleName)
