@@ -262,7 +262,10 @@ def giSpyGDILoad(gDocURL,directory):
     cfg = getConfig(config)
     cfg['OutDir'] = account['name'] + '/'
     cfg['FileName'] = account['name']
-    cfg['Logins'] = [account['login']]
+    if type(account['login']) is list:
+        cfg['Logins'] = account['login']
+    else:
+        cfg['Logins'] = [account['login']]
     cfg['GDI'] = gdi
     cfg['UseGDI'] = True
     
