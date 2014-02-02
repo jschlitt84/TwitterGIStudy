@@ -26,7 +26,12 @@ class giSeeker():
         
         if cfg['OnlyKeepNLTK']:
             self.useNLTK = True
-            self.cfg['OnlyKeepNLTK'] = cfg['OnlyKeepNLTK'].split('_')
+            temp = cfg['OnlyKeepNLTK']
+            if type(temp) is str:
+                self.cfg['OnlyKeepNLTK'] = temp.split('_')
+            if type(temp) is list:
+                self.cfg['OnlyKeepNLTK'] = temp
+            
             try:
                 self.NLTK = tw.getClassifier(cfg['NLTKFile'])
             except:
@@ -247,7 +252,7 @@ class giSeeker():
                         
                         #print "DEBOOO MATRIX", len(self.stackLastTweet), len(self.stackLastTweet[0])
                         while not loggedIn or not ranSearch:  
-                            try:
+                            if True:
                                 cellCollected = self.api.search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
@@ -261,12 +266,7 @@ class giSeeker():
                                 
                                 if len(cellCollected)>0:
                                     collected += cellCollected
-                                    
-                                    """ids = set()
-                                    for item in cellCollected:
-                                        ids.add(int(item.id))
-                                        print int(item.id)
-                                    self.stackLastTweet[queryCount][geoCount] = max(ids)"""
+                            
                                     self.stackLastTweet[queryCount][geoCount] = int(collected[0].id)
                                     
                                 geoCount += 1; counted += 1
@@ -277,7 +277,7 @@ class giSeeker():
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
                                 time.sleep(stackDelay)
-                            except:
+                            else:
                                 loggedIn = False
                                 while not loggedIn:
                                     print "Login error, will sleep 60 seconds and attempt reconnection"
