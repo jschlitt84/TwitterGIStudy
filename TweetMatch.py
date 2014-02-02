@@ -26,8 +26,8 @@ resultKey = {1:"no suspicion of infectious illness",2:"suspicion of infectious i
 
 def loadFile(text):
     outPut = []
-    if text == "null"
-    text = defaultFile
+    if text == "null":
+        text = defaultFile
     try:
         if type(text) is list:
             fileIn = open(text[1],'rb')
