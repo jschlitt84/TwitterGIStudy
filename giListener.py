@@ -31,6 +31,8 @@ class giSeeker():
                 self.cfg['OnlyKeepNLTK'] = temp.split('_')
             if type(temp) is list:
                 self.cfg['OnlyKeepNLTK'] = temp
+	    if type(self.cfg['OnlyKeepNLTK']) is not list:
+		self.cfg['OnlyKeepNLTK'] = [str(temp)]
             self.cfg['OnlyKeepNLTK'] = [str(key) for key in self.cfg['OnlyKeepNLTK']]
             
             
@@ -247,6 +249,7 @@ class giSeeker():
         while True:
             collected = []
             foundIDs = set()
+            allFound = 0
 
             if self.cfg['UseStacking']:
                     counted = 0; increment = 10
@@ -254,7 +257,6 @@ class giSeeker():
                     elapsed = timeNow - self.stackLast
                     self.stackLast = timeNow
                     stackDelay = getDelay(self, elapsed)
-                    print "DEBOOO"; stackDelay = .1
                     print "Running %s geoStack queries at 1 query every %s seconds" % (self.stackQueries,stackDelay)
             
             queryCount = -1
@@ -265,17 +267,16 @@ class giSeeker():
                     for geoPoint in self.stackPoints:
                         loggedIn = True
                         ranSearch = False
-                        
                         while not loggedIn or not ranSearch:  
                             try:
                                 if self.multiAPI:
-                                    chosen = choice(self.api.keys())
-                                    cellCollected = self.api[chosen].search(q = query, 
+				    chosen = choice(self.api.keys())
+				    cellCollected = self.api[chosen]['api'].search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
                                                         count = 100)
-                                    time.sleep(uniform(0,.5))
+                                    time.sleep(uniform(0,.05))
                                     
                                 else:    
                                     cellCollected = self.api.search(q = query, 
@@ -284,15 +285,16 @@ class giSeeker():
                                                             result_type="recent",
                                                             count = 100)
                                 
-                                if self.useNLTK:
+                                allFound += len(cellCollected)
+				if self.useNLTK:
                                     cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
                                 
-                                for cell in collected:
+                                for cell in cellCollected:
                                     foundIDs.add(cell.id)
+				    #print cell.text,"CLASS:", TweetMatch.classifySingle(cell.text,self.NLTK) 
                                 
                                 if len(cellCollected)>0:
                                     collected += cellCollected
-                            
                                     self.stackLastTweet[queryCount][geoCount] = int(collected[0].id)
                                     
                                 geoCount += 1; counted += 1
@@ -301,16 +303,17 @@ class giSeeker():
                                 if counted == self.rateLimit/2:
                                     stackDelay = getDelay(self, 0)
                                 if counted%increment == 0:
-                                    print "Running search %s out of %s with %s hits found" % (counted, self.stackQueries, len(collected))
+                                    print "Running search %s out of %s with %s hits found and %s ignored" % (counted, self.stackQueries, len(collected), allFound - len(collected))
                                 time.sleep(stackDelay)
                             except:
                                 loggedIn = False
                                 while not loggedIn:
-                                    print "Login error, will sleep 60 seconds and attempt reconnection"
-                                    time.sleep(60)
+                                    print "Login error, will sleep 30 seconds and attempt reconnection"
+                                    time.sleep(30)
                                     try:
-                                        if self.multAPI:
-                                            self.api[chosen] = getAuth(self.cfg['_login_'][choice])['api']
+                                        if self.multiAPI:
+					    print "DEBOO2",self.cfg['_login_'][chosen]
+                                            self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
                                         else:
                                             self.api = getAuth(self.cfg['_login_'])['api']
                                         print "Login successfull"
@@ -348,7 +351,7 @@ class giSeeker():
                             if self.useNLTK:
                                     cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
                                 
-                            for cell in collected:
+                            for cell in cellCollected:
                                 foundIDs.add(cell.id)
                                 
                             collected += cellCollected    
