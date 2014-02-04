@@ -308,11 +308,10 @@ class giSeeker():
                             except:
                                 loggedIn = False
                                 while not loggedIn:
-                                    print "Login error, will sleep 30 seconds and attempt reconnection"
-                                    time.sleep(30)
+                                    print "Login error, will sleep 60 seconds and attempt reconnection"
+                                    time.sleep(60)
                                     try:
                                         if self.multiAPI:
-					    print "DEBOO2",self.cfg['_login_'][chosen]
                                             self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
                                         else:
                                             self.api = getAuth(self.cfg['_login_'])['api']
