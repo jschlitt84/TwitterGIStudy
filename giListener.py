@@ -124,6 +124,7 @@ class giSeeker():
                 lists = temp['lists']
                 self.cfg = temp['config']
                 self.cfg['_login_'] = temp['login']
+                self.cfg['Directory'] = directory
                 reformatOld(directory, lists, self.cfg, self.geoCache)
                 print "Sending results to GDI user"
                 try:
