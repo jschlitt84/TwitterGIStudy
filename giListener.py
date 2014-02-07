@@ -35,11 +35,11 @@ class giSeeker():
 		self.cfg['OnlyKeepNLTK'] = [str(temp)]
             self.cfg['OnlyKeepNLTK'] = [str(key) for key in self.cfg['OnlyKeepNLTK']]
             
-            
-            try:
-                self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
-            except:
-                self.NLTK = TweetMatch.getClassifier('null')
+            if '-f' not in cfg['args']:
+            	try:
+                	self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
+         	except:
+                	self.NLTK = TweetMatch.getClassifier('null')
         
         
         giSeeker.flushTweets(self)
@@ -251,10 +251,11 @@ class giSeeker():
             collected = []
             foundIDs = set()
             allFound = 0
-            failCount = 0
-            
+            failCount = dict([key, 0] for key in self.api.keys())
+ 
             if self.multiAPI:
-            	APIoffline = dict([key, 0] for key in self.api.keys)
+		print "DEBOOO MULTIAPI"
+            	APIoffline = dict([key, 0] for key in self.api.keys())
 
             if self.cfg['UseStacking']:
                     counted = 0; increment = 10
@@ -272,20 +273,22 @@ class giSeeker():
                     for geoPoint in self.stackPoints:
                         loggedIn = True
                         ranSearch = False
-			stackDelay = 0
                         while not loggedIn or not ranSearch:  
                             try:
                                 if self.multiAPI:
-                                    numOffLine = sum((1 for key in APIoffLine if APIoffline[key] != 0))
-                                    APIoffline = {key:value-1 for key,value in APIoffline.iteritems() if value > 0}
-				    chooseable = (key for key,value in APIoffline.iteritems() if value == 0)
-				    chosen = choice(choosable)
+                                    numOffline = sum((1 for key in APIoffline if APIoffline[key] != 0))
+                                    APIoffline = {key:max(value-1,0) for key,value in APIoffline.iteritems()}
+				    chooseable = [key for key,value in APIoffline.iteritems() if value == 0]
+				    #print "DEBOO CHOOSABLE", chooseable, "NUMOFFLINE", numOffline, "APIoffline", APIoffline
+				    if len(chooseable) > 0:
+					chosen = choice(chooseable)
 				    cellCollected = self.api[chosen]['api'].search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
                                                         result_type="recent",
                                                         count = 100)
-                                    time.sleep(uniform(0,.05))
+                                    failCount[chosen] = 0
+				    time.sleep(uniform(0,.05))
                                     
                                 else:    
                                     cellCollected = self.api.search(q = query, 
@@ -306,7 +309,7 @@ class giSeeker():
                                     collected += cellCollected
                                     self.stackLastTweet[queryCount][geoCount] = int(collected[0].id)
                                     
-                                geoCount += 1; counted += 1; failCount = 0
+                                geoCount += 1; counted += 1
                                     
                                 ranSearch = True
                                 if counted == self.rateLimit/2:
@@ -314,18 +317,25 @@ class giSeeker():
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found and %s ignored" % (counted, self.stackQueries, len(collected), allFound - len(collected))
                                 if self.multiAPI:
-                                	time.sleep(stackDelay*(float(len(self.API))/len(choosable)))
+                                	time.sleep(stackDelay*(float(len(self.api))/max(len(chooseable),1))*0.9)
                                 else:
                                 	time.sleep(stackDelay)
-                            except:
+                            except Exception,e:
                                 loggedIn = False
                                 while not loggedIn:
-                             	    failCount += 1
-                                    print "Login error, will sleep 60 seconds and attempt reconnection"
-                                    time.sleep(60)
-                                    if True:
+                             	    failCount[chosen] += 1
+                                    if not self.multiAPI:
+					print "Login error, will sleep 60 seconds before reconnection"
+                                        time.sleep(60 + randint(-3,3))
+				    try:
                                         if self.multiAPI:
-                                        	if failCount <= 10:
+						if len(chooseable) == 0:
+							print "All logins down, will sleep 2 minutes before reconnection"
+							chosen = [key for key, value in APIoffline.iteritems() if value == min(APIoffline.values())][0]
+							time.sleep(120)
+							failCount[chosen] = 0
+							APIoffline[chosen] = 0
+                                        	if failCount[chosen] <= 2:
                                             		self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
                                             	else:
                                             		APIoffline[chosen] = 100
@@ -333,7 +343,7 @@ class giSeeker():
                                             self.api = getAuth(self.cfg['_login_'])['api']
                                         print "Login successfull"
                                         loggedIn =  True
-                                    else:
+                                    except Exception,e:
                                         print "Login unsuccessfull\n"
                                 
                 else:
