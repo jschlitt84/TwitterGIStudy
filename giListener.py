@@ -251,6 +251,10 @@ class giSeeker():
             collected = []
             foundIDs = set()
             allFound = 0
+            failCount = 0
+            
+            if self.multiAPI:
+            	APIoffline = dict([key, 0] for key in self.api.keys)
 
             if self.cfg['UseStacking']:
                     counted = 0; increment = 10
@@ -272,7 +276,10 @@ class giSeeker():
                         while not loggedIn or not ranSearch:  
                             try:
                                 if self.multiAPI:
-				    chosen = choice(self.api.keys())
+                                    numOffLine = sum((1 for key in APIoffLine if APIoffline[key] != 0))
+                                    APIoffline = {key:value-1 for key,value in APIoffline.iteritems() if value > 0}
+				    chooseable = (key for key,value in APIoffline.iteritems() if value == 0)
+				    chosen = choice(choosable)
 				    cellCollected = self.api[chosen]['api'].search(q = query, 
                                                         since_id = self.stackLastTweet[queryCount][geoCount],  
                                                         geocode = geoString(geoPoint),
@@ -299,22 +306,29 @@ class giSeeker():
                                     collected += cellCollected
                                     self.stackLastTweet[queryCount][geoCount] = int(collected[0].id)
                                     
-                                geoCount += 1; counted += 1
+                                geoCount += 1; counted += 1; failCount = 0
                                     
                                 ranSearch = True
                                 if counted == self.rateLimit/2:
                                     stackDelay = getDelay(self, 0)
                                 if counted%increment == 0:
                                     print "Running search %s out of %s with %s hits found and %s ignored" % (counted, self.stackQueries, len(collected), allFound - len(collected))
-                                time.sleep(stackDelay)
+                                if self.multiAPI:
+                                	time.sleep(stackDelay*(float(len(self.API))/len(choosable)))
+                                else:
+                                	time.sleep(stackDelay)
                             except:
                                 loggedIn = False
                                 while not loggedIn:
+                             	    failCount += 1
                                     print "Login error, will sleep 60 seconds and attempt reconnection"
                                     time.sleep(60)
                                     if True:
                                         if self.multiAPI:
-                                            self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
+                                        	if failCount <= 10:
+                                            		self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
+                                            	else:
+                                            		APIoffline[chosen] = 100
                                         else:
                                             self.api = getAuth(self.cfg['_login_'])['api']
                                         print "Login successfull"
