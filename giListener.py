@@ -268,6 +268,7 @@ class giSeeker():
                     for geoPoint in self.stackPoints:
                         loggedIn = True
                         ranSearch = False
+			stackDelay = 0
                         while not loggedIn or not ranSearch:  
                             try:
                                 if self.multiAPI:
@@ -311,14 +312,14 @@ class giSeeker():
                                 while not loggedIn:
                                     print "Login error, will sleep 60 seconds and attempt reconnection"
                                     time.sleep(60)
-                                    try:
+                                    if True:
                                         if self.multiAPI:
                                             self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
                                         else:
                                             self.api = getAuth(self.cfg['_login_'])['api']
                                         print "Login successfull"
                                         loggedIn =  True
-                                    except:
+                                    else:
                                         print "Login unsuccessfull\n"
                                 
                 else:
