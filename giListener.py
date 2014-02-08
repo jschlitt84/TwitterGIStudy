@@ -325,12 +325,12 @@ class giSeeker():
                                 while not loggedIn:
                              	    failCount[chosen] += 1
                                     if not self.multiAPI:
-					print "Login error, will sleep 60 seconds before reconnection"
-                                        time.sleep(60 + randint(-3,3))
+					print "Login error, will sleep 120 before reconnection, error code:",e
+                                        time.sleep(120 + randint(-3,3))
 				    try:
                                         if self.multiAPI:
 						if len(chooseable) == 0:
-							print "All logins down, will sleep 2 minutes before reconnection"
+							print "All logins down, will sleep 2 minutes before reconnection, error code:",e
 							chosen = [key for key, value in APIoffline.iteritems() if value == min(APIoffline.values())][0]
 							time.sleep(120)
 							failCount[chosen] = 0
@@ -344,7 +344,7 @@ class giSeeker():
                                         print "Login successfull"
                                         loggedIn =  True
                                     except Exception,e:
-                                        print "Login unsuccessfull\n"
+                                        print "Login unsuccessfull\n",e
                                 
                 else:
                     loggedIn = True
