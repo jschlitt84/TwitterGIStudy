@@ -251,10 +251,10 @@ class giSeeker():
             collected = []
             foundIDs = set()
             allFound = 0
-            failCount = dict([key, 0] for key in self.api.keys())
  
             if self.multiAPI:
 		print "DEBOOO MULTIAPI"
+		failCount = dict([key,-] for key in self.api.keys())
             	APIoffline = dict([key, 0] for key in self.api.keys())
 
             if self.cfg['UseStacking']:
