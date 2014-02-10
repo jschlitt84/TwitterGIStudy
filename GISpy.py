@@ -16,7 +16,7 @@ from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email import Encoders
 
-from copy import deepcopy
+from copy import deepcopy, copy
 from geopy.distance import great_circle
 from geopy import geocoders
 from dateutil import parser
@@ -786,7 +786,7 @@ def reformatOld(directory, lists, cfg, geoCache):
                 json.dump(filteredContent,outFile)
             outFile.close()
             
-
+	#collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
         collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
         outName = cfg['FileName']+"_CollectedTweets"
         
@@ -832,40 +832,35 @@ def reformatOld(directory, lists, cfg, geoCache):
 
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
-def cleanJson(jsonIn, cfg, types):
+def cleanJson(jsonOriginal, cfg, types):
     """Returns filtered json with only desired data & derived data"""
     
-    #jsonIn = deepcopy(jsonOriginal)
-    #jsonIn = jsonOriginal    
-
     tweetData = cfg['TweetData']
     userData = cfg['UserData']
     keepUser = len(userData) > 0 and 'user' not in tweetData
-    
-    jsonToDictFix(jsonIn)
-    jsonIn = uniqueJson(jsonIn)
-    toDelete = []
+    jsonIn = []
     
     if len(tweetData + userData) > 0:
-        for row in range(len(jsonIn)):
-            loaded = jsonIn[row]
+        for row in range(len(jsonOriginal)):
+            loaded = deepcopy(jsonOriginal[row])
+	    jsonToDictFix(loaded)
             ID = str(loaded['id'])
-            if ID not in types.keys():
-                toDelete.append(row)
-            else:
-                loadedUser = loaded['user']
-                del loaded['user']
-                tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
-                userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
-                if keepUser:
-                    for key in userJson.keys():
-                        tempJson['user_' + key] = userJson[key]
-                jsonIn[row] = tempJson
-                for key in types[ID].keys():
+	    loadedUser = loaded['user']
+            del loaded['user']
+            tempJson = dict([(i, loaded[i]) for i in tweetData if i in loaded])
+            userJson = dict([(i, loadedUser[i]) for i in userData if i in loadedUser])
+            if keepUser:
+                for key in userJson.keys():
+                    tempJson['user_' + key] = userJson[key]
+            jsonIn.append(tempJson)
+            if ID in types.keys():
+	        for key in types[ID].keys():
                     jsonIn[row][key] = types[ID][key]
-        for row in reversed(toDelete):
-            del jsonIn[row]
-    return jsonIn 
+        
+	jsonIn = [row for row in jsonIn if str(row['id']) in types.keys()] 
+        uniqueJson(jsonIn)
+    
+    return jsonIn
         
         
 
