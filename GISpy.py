@@ -832,11 +832,12 @@ def reformatOld(directory, lists, cfg, geoCache):
 
       
 #Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
-def cleanJson(jsonOriginal, cfg, types):
+def cleanJson(jsonIn, cfg, types):
     """Returns filtered json with only desired data & derived data"""
     
-    jsonIn = deepcopy(jsonOriginal)
-    
+    #jsonIn = deepcopy(jsonOriginal)
+    #jsonIn = jsonOriginal    
+
     tweetData = cfg['TweetData']
     userData = cfg['UserData']
     keepUser = len(userData) > 0 and 'user' not in tweetData
