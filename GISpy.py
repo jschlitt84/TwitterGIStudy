@@ -705,7 +705,7 @@ def jsonToDictFix(jsonIn):
     elif type(jsonIn) is dict:
         None
     else:
-        jsonIn = json.loads(jsonIn)
+        jsonIn = json.loads(unicode(jsonIn))
             
             
             
@@ -861,6 +861,7 @@ def cleanJson(jsonOriginal, cfg, types):
         for row in range(len(jsonOriginal)):
             loaded = deepcopy(jsonOriginal[row])
 	    jsonToDictFix(loaded)
+	    print "DEBOOO", type(loaded), loaded
             ID = str(loaded['id'])
 	    loadedUser = loaded['user']
             del loaded['user']
