@@ -65,7 +65,8 @@ def getFile(userName, __password, fileName):
     feed = spreadsheets_client.GetWorksheetsFeed(spreadsheet_id)
     
     tempFile = "googtemp.csv"
-    uri = 'http://docs.google.com/feeds/documents/private/full/%s' % spreadsheet_id
+    #https://docs.google.com/feeds/default/private/changes?v=3
+    uri = 'https://docs.google.com/feeds/documents/private/full/%s' % spreadsheet_id
 
     entry = gd_client.GetDocumentListEntry(uri)
     docs_auth_token = gd_client.GetClientLoginToken()
