@@ -8,6 +8,7 @@ import unicodedata
 import tweepy
 import smtplib
 import pickle
+#import ast
 
 import gDocsImport as gd
 
@@ -705,8 +706,8 @@ def jsonToDictFix(jsonIn):
     elif type(jsonIn) is dict:
         None
     else:
-        jsonIn = json.loads(unicode(jsonIn))
-            
+	jsonIn = json.loads(jsonIn)
+    return jsonIn    
             
             
             
@@ -848,10 +849,8 @@ def reformatOld(directory, lists, cfg, geoCache):
         return geoCache
 
       
-#Removes all but select parameters from tweet json. If parameter is under user params, brings to main params                  
 def cleanJson(jsonOriginal, cfg, types):
     """Returns filtered json with only desired data & derived data"""
-    
     tweetData = cfg['TweetData']
     userData = cfg['UserData']
     keepUser = len(userData) > 0 and 'user' not in tweetData
@@ -859,9 +858,7 @@ def cleanJson(jsonOriginal, cfg, types):
     
     if len(tweetData + userData) > 0:
         for row in range(len(jsonOriginal)):
-            loaded = deepcopy(jsonOriginal[row])
-	    jsonToDictFix(loaded)
-	    print "DEBOOO", type(loaded), loaded
+            loaded = jsonToDictFix(deepcopy(jsonOriginal[row]))
             ID = str(loaded['id'])
 	    loadedUser = loaded['user']
             del loaded['user']
