@@ -2,7 +2,7 @@
 *.pyc
 *nocopy*
 *local*
-*geoPickle*
+*ickle*
 output/
 test.csv
 configTest
