@@ -19,3 +19,19 @@ bigGIHunter/search/checkbits
 *.csv
 
 sliceHunter/search/checkbits
+
+GIStudy/.dropbox
+
+GIStudy/search/checkbits
+
+TwitterGIStudy/
+
+outputOld/bigGIHunterOld/.dropbox
+
+outputOld/bigGIHunterOld/search/checkbits
+
+outputOld/search/checkbits
+
+biggestHunter/search/checkbits
+
+GeoPickle.txt

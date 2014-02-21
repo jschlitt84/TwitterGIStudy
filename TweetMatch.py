@@ -5,20 +5,19 @@ import unicodedata
 import pandas as pd
 
 import nltk.classify.util
-from nltk.classify import NaiveBayesClassifier
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
 
 #Analys Methods from: 
 #http://www.slideshare.net/ogrisel/nltk-scikit-learnpyconfr2010ogrisel#btnPrevious
 #http://streamhacker.com/2010/05/10/text-classification-sentiment-analysis-naive-bayes-classifier/
-
 #n-gram generation
 #http://locallyoptimal.com/blog/2013/01/20/elegant-n-gram-generation-in-python/
 
 textColumn = 'text'
 categoryColumn = 'check1'
 defaultFile = 'NLTK_Ready_Tweets.csv'
+classMode = 'max ent'
 degreesToUse = [1,2,3,4]
 cutoff = .75
 resultKey = {1:"no suspicion of infectious illness",2:"suspicion of infectious illness, type unknown",3:"suspicion of infectious GI illness"}
@@ -152,9 +151,16 @@ def getClassifier(tweetfile):
         readyToSend += NGrammized[category]
         
     print "Attempting Classification"
-    classifier = NaiveBayesClassifier.train(readyToSend)
+    if classMode == 'naive bayes':
+        from nltk.classify import NaiveBayesClassifier
+        classifier = NaiveBayesClassifier.train(readyToSend)
+    elif classMode == 'max ent':
+        from nltk.classify import MaxentClassifier
+        classifier = MaxentClassifier.train(readyToSend)
+        
     print
-    classifier.show_most_informative_features(n=30)
+    #classifier.show_most_informative_features(n=30)
+    #classifier.show_most_informative_features()
     return classifier
 
 def main(tweetfile):
