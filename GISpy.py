@@ -521,13 +521,16 @@ def patientGeoCoder(request,cfg):
     tries = 0
     limit = 1
     delay = 5
+    if "Cores" in cfg.keys():
+        delay *= cfg['Cores']
     while True:
         try:
             return gCoder.geocode(request)
         except:
             tries +=1
             if tries == limit+1 or not cfg['PatientGeocoding']:
-                print "\nUnable to geoCode", request, '\n'
+                if 'Cores' not in cfg.keys():
+                    print "\nUnable to geoCode", request, '\n'
                 return "timeOut", ('NaN','NaN')
             time.sleep(delay)
             
@@ -558,8 +561,9 @@ def isInBox(cfg,geoCache,status):
             hasCoords = True
     
     cacheRef = (unicode(coordinates) + unicode(userLoc)).lower()
-    if cacheRef  in geoCache.keys():
-        print "DEBOOO: Inboxed from memory", cacheRef
+    if cacheRef in geoCache.keys():
+        if 'Cores' not in cfg.keys():
+            print "DEBOOO: Inboxed from memory", cacheRef
         loaded = geoCache[cacheRef]
         if loaded['lat'] != 'NaN' and loaded['lon'] != 'NaN':
             place = loaded['place']
@@ -569,7 +573,7 @@ def isInBox(cfg,geoCache,status):
             coordsWork = True
         else:
             return loaded
-    else:        
+    elif 'Cores' not in cfg.keys():       
         print "DEBOOO: Looking up", cacheRef
     
     
@@ -802,6 +806,7 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         
         
         cores = cpu_count()
+        cfg['Cores'] = cores
         out_q = Queue()
         block =  int(ceil(len(fileList)/float(cores)))
         processes = []
