@@ -823,6 +823,8 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
             
         for i in range(cores):
             collectedContent.append(merged[str(i)])
+            
+        geoCache = dict(pickleMgmt.items())
     
         
             
