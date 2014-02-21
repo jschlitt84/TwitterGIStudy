@@ -95,6 +95,7 @@ def main():
     usingGDoc = False
     skipReformat = '-s' in sys.argv
     quickReformat = '-r' in sys.argv and not skipReformat
+    multiReformat = '-m' in sys.argv and not skipReformat
     try: 
         userLogin = sys.argv[2]
         print "Login '%s' passed explicitly" % (userLogin)
@@ -131,10 +132,13 @@ def main():
         geoCache = dict()
         updateGeoPickle(geoCache,directory+pickleName)
         if not skipReformat:
-		reformatOld(directory,lists,cfg,geoCache)
-		if quickReformat:
-			quit()        	
-		updateGeoPickle(geoCache,directory+pickleName)
+            if not multiReformat:
+	       reformatOld(directory,lists,cfg,geoCache)
+	    else:
+	       reformatOldMulti(directory,lists,cfg,geoCache)
+            if quickReformat or multiReformat:
+                quit()        	
+	    updateGeoPickle(geoCache,directory+pickleName)
         
     else: 
         print "Loading parameters from config file '%s' in directory '%s'" % (configFile, directory)

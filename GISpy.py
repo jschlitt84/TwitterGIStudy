@@ -19,7 +19,8 @@ from copy import deepcopy, copy
 from geopy.distance import great_circle
 from geopy import geocoders
 from dateutil import parser
-from math import pi, cos
+from math import pi, cos, ceil
+from multiprocessing import Process, Queue, cpu_count, Manager
 
 #timeArgs = "%A_%m-%d-%y_%H-%M-%S"
 timeArgs = '%a %d %b %Y %H:%M:%S'
@@ -716,6 +717,153 @@ def dictToJsonFix(jsonOut):
             jsonOut[row] = json.dump(jsonOut[row])   
 
 
+def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q):
+    count = 0
+    collectedContent = []
+    collectedTypes = {}
+    keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
+    
+    for fileName in fileList:
+            inFile = open(directory+fileName)
+            content = json.load(inFile)
+            filteredContent = []
+            
+            
+            print "Core", core, "reclassifying", fileName, "by updated lists"
+            
+            if lists != "null":
+                jsonToDictFix(content)
+            
+            for tweet in content:
+                count += 1
+                if count%250 == 0:
+                    print "\tCore",core,count,"tweets sorted"
+                if count%cfg['PickleInterval'] == 0:
+                    updateGeoPickle(pickleMgmt,cfg['Directory']+pickleName)
+                tweet['text'] = tweet['text'].replace('\n',' ')
+                tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
+                if tweetType in keepTypes:
+                    geoType = isInBox(cfg,pickleMgmt,tweet)
+                    if geoType['inBox'] or cfg['KeepUnlocated']:
+                        timeData = outTime(localTime(tweet,cfg))
+                        collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
+                            'geoType':geoType['text'],
+                            'lat':geoType['lat'],
+                            'lon':geoType['lon'],
+                            'fineLocation':geoType['trueLoc'],
+                            'place':geoType['place'],
+                            'day':timeData['day'],
+                            'time':timeData['time'],
+                            'date':timeData['date']}
+                        
+
+                    filteredContent.append(tweet)
+            
+            collectedContent += filteredContent                  
+
+            filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
+            outName = fileName.replace('Raw','FilteredTweets')
+            print "\tSaving file as", outName
+            with open(directory+outName, 'w') as outFile:
+                json.dump(filteredContent,outFile)
+            outFile.close()
+            
+    out_q.put({str(core):collectedContent})
+            
+
+
+def reformatOldMulti(directory, lists, cfg, geoCache):
+    """Keeps old content up to date with latests queries & settings"""
+    homeDirectory = directory
+    manager = Manager()
+    pickleMgmt = manager.dict(geoCache)
+    
+    print "Preparing to reformat from raw tweets..."
+    if cfg['OutDir'] not in directory.lower():
+        directory += cfg['OutDir'] + cfg['Method'] + '/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        fileList = []
+    else:
+        fileList = os.listdir(directory)
+        oldFiltered = [i for i in fileList if i.lower().startswith('filteredtweets')]
+        fileList = [i for i in fileList if i.lower().startswith('raw')]
+    
+    
+    if len(fileList) != 0:
+        if lists == 'null':
+            lists = updateWordBanks(homeDirectory, cfg)
+        
+        collectedContent = []
+        collectedTypes = {}
+            
+        fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
+        count = 0
+        
+        
+        cores = cpu_count()
+        out_q = Queue()
+        block =  int(ceil(len(fileList)/float(cores)))
+        processes = []
+
+        for i in range(cores):
+            p = Process(target = getReformatted, args = (directory, lists, cfg, pickleMgmt, fileList[block*i:block*(i+1)], i, out_q))
+            processes.append(p)
+            p.start() 
+        merged = {}
+        for i in range(cores):
+            merged.update(out_q.get())
+        for p in processes:
+            p.join()
+            
+        for i in range(cores):
+            collectedContent.append(merged[str(i)])
+    
+        
+            
+        collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
+        outName = cfg['FileName']+"_CollectedTweets"
+        
+        print "Writing collected tweets to "+outName+".json"
+        with open(directory+outName+'.json', 'w') as outFile:
+                json.dump(collectedContent,outFile)
+        outFile.close()
+        print "...complete"
+        
+        jsonToDictFix(collectedContent)
+        
+        orderedKeys = sorted(collectedContent[0].keys())
+        orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
+        
+        addKeys = ["score","check3","check2","check1"]
+        for key in addKeys:
+            if key not in orderedKeys:  
+                orderedKeys.insert(1,key)
+                
+        for pos in range(len(collectedContent)):
+            for key in orderedKeys:
+                if key not in collectedContent[pos].keys():
+                    collectedContent[pos][key] = 'NaN'
+                else:
+                    collectedContent[pos][key] = stripUnicode(collectedContent[pos][key])
+        
+        print "Writing collected tweets to "+outName+".csv"   
+        outFile = open(directory+outName+'.csv', "w") 
+        csvOut = csv.DictWriter(outFile,orderedKeys)
+        csvOut.writer.writerow(orderedKeys)
+        csvOut.writerows(collectedContent)
+        """for row in collectedContent:
+            print row
+            csvOut.writerow(row)
+            print "complete"""
+        outFile.close()
+        print "...complete"
+        return geoCache
+             
+    else:
+        print "Directory empty, reformat skipped"
+        return geoCache
+
 
 
 def reformatOld(directory, lists, cfg, geoCache):
@@ -736,19 +884,6 @@ def reformatOld(directory, lists, cfg, geoCache):
     
     
     if len(fileList) != 0:
-        
-        """
-        # backup old filtered files
-        
-        timeStamp = datetime.datetime.now().strftime(timeArgs)
-        newDir = directory+'Old_Filtered_Tweets/Moved_On_'+timeStamp
-        os.makedirs(newDir)
-        print "Moving old files to", newDir
-        for oldFile in oldFiltered:
-            print "\t",oldFile
-            shutil.move(directory+oldFile,newDir)
-        print "archiving complete"
-        """
         if lists == 'null':
             lists = updateWordBanks(homeDirectory, cfg)
         
@@ -802,7 +937,6 @@ def reformatOld(directory, lists, cfg, geoCache):
                 json.dump(filteredContent,outFile)
             outFile.close()
             
-	#collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
         collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
         outName = cfg['FileName']+"_CollectedTweets"
         
