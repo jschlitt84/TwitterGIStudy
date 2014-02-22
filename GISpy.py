@@ -826,7 +826,6 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         print "Processes complete, merging output"
            
         for i in range(cores):
-            filteredContent
             collectedContent.append(merged['content'+str(i)])
             #collectedTypes.append(merged['types'+str(i)])
             
