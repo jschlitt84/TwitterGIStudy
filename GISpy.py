@@ -773,6 +773,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
     collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
     pickleMgmt = Manager().dict(geoPickle)        
     #out_q.put({'content'+str(core):collectedContent,'types'+str(core):collectedTypes})
+    print "Core", core, "tasks complete!"
     out_q.put({'content'+str(core):collectedContent})        
 
 
@@ -799,14 +800,9 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         if lists == 'null':
             lists = updateWordBanks(homeDirectory, cfg)
         
-        collectedContent = []
-        collectedTypes = {}
-            
+        collectedContent = dict()
         fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
         random.shuffle(fileList)
-        count = 0
-        
-        
         cores = cpu_count()
         cfg['Cores'] = cores
         out_q = Queue()
@@ -827,9 +823,10 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         print "Processes complete, merging output"
            
         for i in range(cores):
-            collectedContent.append(merged['content'+str(i)])
+            collectedContent.update(merged['content'+str(i)])
             #collectedTypes.append(merged['types'+str(i)])
             
+        print "Returning updated geoPickle"
         geoCache = dict(pickleMgmt.items())
         updateGeoPickle(geoCache,cfg['Directory']+pickleName)
   
