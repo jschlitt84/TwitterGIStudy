@@ -776,6 +776,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
 
 def reformatOldMulti(directory, lists, cfg, geoCache):
     """Keeps old content up to date with latests queries & settings"""
+    keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
     homeDirectory = directory
     manager = Manager()
     pickleMgmt = manager.dict(geoCache)
