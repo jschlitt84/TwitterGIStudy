@@ -803,6 +803,7 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         collectedTypes = {}
             
         fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
+        random.shuffle(fileList)
         count = 0
         
         
