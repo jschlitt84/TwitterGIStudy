@@ -762,16 +762,18 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
                     filteredContent.append(tweet)
             
             collectedContent += filteredContent                  
-
             filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
+            
             outName = fileName.replace('Raw','FilteredTweets')
             print "\tSaving file as", outName
             with open(directory+outName, 'w') as outFile:
                 json.dump(filteredContent,outFile)
             outFile.close()
-    pickleMgmt = Manager().dict(geoPickle)        
-    out_q.put({'content'+str(core):collectedContent,'types'+str(core):collectedTypes})
             
+    collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
+    pickleMgmt = Manager().dict(geoPickle)        
+    #out_q.put({'content'+str(core):collectedContent,'types'+str(core):collectedTypes})
+    out_q.put({'content'+str(core):collectedContent})        
 
 
 def reformatOldMulti(directory, lists, cfg, geoCache):
@@ -824,14 +826,14 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         print "Processes complete, merging output"
            
         for i in range(cores):
+            filteredContent
             collectedContent.append(merged['content'+str(i)])
-            collectedTypes.append(merged['types'+str(i)])
+            #collectedTypes.append(merged['types'+str(i)])
             
         geoCache = dict(pickleMgmt.items())
         updateGeoPickle(geoCache,cfg['Directory']+pickleName)
   
-            
-        CollectedContent = cleanJson(collectedContent,cfg,collectedTypes)
+        #CollectedContent = cleanJson(collectedContent,cfg,collectedTypes)
         outName = cfg['FileName']+"_CollectedTweets"
         
         print "Writing collected tweets to "+outName+".json"
