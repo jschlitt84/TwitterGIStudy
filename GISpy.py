@@ -721,17 +721,15 @@ def dictToJsonFix(jsonOut):
             jsonOut[row] = json.dump(jsonOut[row])   
 
 
-def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q):
+def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, keepTypes):
     count = 0
     collectedContent = []
     collectedTypes = {}
-    keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
-    
+    geoPickle = dict(pickleMgmt.items())
     for fileName in fileList:
             inFile = open(directory+fileName)
             content = json.load(inFile)
             filteredContent = []
-            
             
             print "Core", core, "reclassifying", fileName, "by updated lists"
             
@@ -742,12 +740,12 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q):
                 count += 1
                 if count%250 == 0:
                     print "\tCore",core,count,"tweets sorted"
-                if count%cfg['PickleInterval'] == 0:
-                    updateGeoPickle(pickleMgmt,cfg['Directory']+pickleName)
+                #if count%cfg['PickleInterval'] == 0:
+                #    updateGeoPickle(pickleMgmt,cfg['Directory']+pickleName)
                 tweet['text'] = tweet['text'].replace('\n',' ')
                 tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
                 if tweetType in keepTypes:
-                    geoType = isInBox(cfg,pickleMgmt,tweet)
+                    geoType = isInBox(cfg,geoPickle,tweet)
                     if geoType['inBox'] or cfg['KeepUnlocated']:
                         timeData = outTime(localTime(tweet,cfg))
                         collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
@@ -771,7 +769,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q):
             with open(directory+outName, 'w') as outFile:
                 json.dump(filteredContent,outFile)
             outFile.close()
-            
+    pickleMgmt = Manager().dict(geoPickle)        
     out_q.put({str(core):collectedContent})
             
 
@@ -812,7 +810,8 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         processes = []
 
         for i in range(cores):
-            p = Process(target = getReformatted, args = (directory, lists, cfg, pickleMgmt, fileList[block*i:block*(i+1)], i, out_q))
+            p = Process(target = getReformatted, args = (directory, lists, cfg, pickleMgmt, fileList[block*i:block*(i+1)], i, out_q, keepTypes))
+            
             processes.append(p)
             p.start() 
         merged = {}
@@ -825,6 +824,7 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
             collectedContent.append(merged[str(i)])
             
         geoCache = dict(pickleMgmt.items())
+        updateGeoPickle(geoCache,cfg['Directory']+pickleName)
     
         
             
