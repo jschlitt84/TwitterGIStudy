@@ -777,7 +777,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
     out_q.put({'content'+str(core):collectedContent})        
 
 
-def reformatOldMulti(directory, lists, cfg, geoCache):
+def reformatOld(directory, lists, cfg, geoCache):
     """Keeps old content up to date with latests queries & settings"""
     keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
     homeDirectory = directory
@@ -800,7 +800,7 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         if lists == 'null':
             lists = updateWordBanks(homeDirectory, cfg)
         
-        collectedContent = dict()
+        collectedContent = []
         fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
         random.shuffle(fileList)
         cores = cpu_count()
@@ -823,15 +823,15 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         print "Processes complete, merging output"
            
         for i in range(cores):
-            collectedContent.update(merged['content'+str(i)])
+            print merged['content'+str(i)]
+	    collectedContent += merged['content'+str(i)]
             #collectedTypes.append(merged['types'+str(i)])
             
         print "Returning updated geoPickle"
         geoCache = dict(pickleMgmt.items())
         updateGeoPickle(geoCache,cfg['Directory']+pickleName)
-  
-        #CollectedContent = cleanJson(collectedContent,cfg,collectedTypes)
-        outName = cfg['FileName']+"_CollectedTweets"
+       
+	outName = cfg['FileName']+"_CollectedTweets"
         
         print "Writing collected tweets to "+outName+".json"
         with open(directory+outName+'.json', 'w') as outFile:
@@ -840,12 +840,17 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
         print "...complete"
         
         jsonToDictFix(collectedContent)
-        
+	collectedContent = uniqueJson(collectedContent)        
+
         orderedKeys = sorted(collectedContent[0].keys())
         orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
         
-        addKeys = ["score","check3","check2","check1"]
-        for key in addKeys:
+	if cfg['OnlyKeepNLTK']:
+		addKeys = []
+        else:
+		addKeys = ["score","check3","check2","check1"]
+        
+	for key in addKeys:
             if key not in orderedKeys:  
                 orderedKeys.insert(1,key)
                 
@@ -875,8 +880,8 @@ def reformatOldMulti(directory, lists, cfg, geoCache):
 
 
 
-def reformatOld(directory, lists, cfg, geoCache):
-    """Keeps old content up to date with latests queries & settings"""
+"""def reformatOld(directory, lists, cfg, geoCache):
+    #Keeps old content up to date with latests queries & settings
     homeDirectory = directory
     keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
     
@@ -977,17 +982,17 @@ def reformatOld(directory, lists, cfg, geoCache):
         csvOut = csv.DictWriter(outFile,orderedKeys)
         csvOut.writer.writerow(orderedKeys)
         csvOut.writerows(collectedContent)
-        """for row in collectedContent:
-            print row
-            csvOut.writerow(row)
-            print "complete"""
-        outFile.close()
-        print "...complete"
-        return geoCache
+        #for row in collectedContent:
+        #    print row
+        #    csvOut.writerow(row)
+        #    print "complete
+        #outFile.close()
+        #print "...complete"
+        #return geoCache
              
     else:
         print "Directory empty, reformat skipped"
-        return geoCache
+        return geoCache"""
 
       
 def cleanJson(jsonOriginal, cfg, types):
