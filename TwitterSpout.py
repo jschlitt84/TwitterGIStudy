@@ -132,7 +132,7 @@ def main():
         updateGeoPickle(geoCache,directory+pickleName)
         if not skipReformat:
 	    reformatOld(directory,lists,cfg,geoCache)
-            if quickReformat or multiReformat:
+            if quickReformat:
                 quit()        	
 	    updateGeoPickle(geoCache,directory+pickleName)
         
