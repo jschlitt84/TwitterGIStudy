@@ -49,7 +49,6 @@ def lemList(listed):
     listed = [word for word in listed if len(word)>1]
     for pos in range(len(listed)):
         listed[pos] = lmtzr.lemmatize(listed[pos])
-    #listed = [word for word in listed if len(word)>1]
         
     
 def prepText(content):

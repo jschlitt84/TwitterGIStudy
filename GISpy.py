@@ -823,7 +823,7 @@ def reformatOld(directory, lists, cfg, geoCache):
         print "Processes complete, merging output"
            
         for i in range(cores):
-            print merged['content'+str(i)]
+            #print merged['content'+str(i)]
 	    collectedContent += merged['content'+str(i)]
             #collectedTypes.append(merged['types'+str(i)])
             
