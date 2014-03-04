@@ -17,7 +17,7 @@ from nltk.corpus import stopwords
 textColumn = 'text'
 categoryColumn = 'check1'
 defaultFile = 'NLTK_Ready_Tweets.csv'
-classMode = 'max ent'
+classMode = 'naive bayes'
 degreesToUse = [1,2,3,4]
 cutoff = .75
 resultKey = {1:"no suspicion of infectious illness",2:"suspicion of infectious illness, type unknown",3:"suspicion of infectious GI illness"}
