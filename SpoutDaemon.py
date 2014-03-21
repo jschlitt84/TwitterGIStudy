@@ -25,7 +25,7 @@ while True:
     print format+"\n\n(Re)Loading URL list",end
     
     for line in content:
-        if '.url=' in line.replace(' ',''):
+        if '.url=' in line.replace(' ','') and not line.startswith('#'):
             urls.add(line[line.index('https://'):-1])
         
     for url in urls:
