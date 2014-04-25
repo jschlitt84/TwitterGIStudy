@@ -20,8 +20,20 @@ defaultFile = 'NLTK_Ready_Tweets.csv'
 classMode = 'naive bayes'
 degreesToUse = [1,2,3,4]
 cutoff = .75
-resultKey = {1:"no suspicion of infectious illness",2:"suspicion of infectious illness, type unknown",3:"suspicion of infectious GI illness"}
+#resultKey = {1:"no suspicion of infectious illness",2:"suspicion of infectious illness, type unknown",3:"suspicion of infectious GI illness"}
+resultKey = {1:"Category 1",2:"Category 2",3:"Category 3"}
 
+
+
+def stripUnicode(text):
+    """Strips unicode special characters for text storage (smileys, etc)"""
+    if text == None:
+        return "NaN"
+    else:
+        if type(text) == unicode:
+            return str(unicodedata.normalize('NFKD', text).encode('ascii', 'ignore'))
+        else:
+            return text
 
 def loadFile(text):
     outPut = []
@@ -58,7 +70,9 @@ def prepText(content):
         
         
 def prepTweet(word):
-    original = text = word.lower() #switch to lowercase
+    
+    word =  stripUnicode(word)
+    original = text = str(word).lower() #switch to lowercase
         
     text = text.replace("&amp",'&') #cleanup conversion bug
     
@@ -158,8 +172,8 @@ def getClassifier(tweetfile):
         classifier = MaxentClassifier.train(readyToSend)
         
     print
-    #classifier.show_most_informative_features(n=30)
-    #classifier.show_most_informative_features()
+    classifier.show_most_informative_features(n=200)
+    classifier.show_most_informative_features()
     return classifier
 
 def main(tweetfile):
@@ -182,4 +196,4 @@ def main(tweetfile):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main(sys.argv[2])

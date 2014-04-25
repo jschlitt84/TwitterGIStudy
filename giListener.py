@@ -36,11 +36,14 @@ class giSeeker():
             self.cfg['OnlyKeepNLTK'] = [str(key) for key in self.cfg['OnlyKeepNLTK']]
             
             if '-f' not in cfg['args']:
-            	try:
-                	self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
-         	except:
-                	self.NLTK = TweetMatch.getClassifier('null')
-        
+            	#try:
+            	#    print "DEBOO1"
+            	self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
+            	#    print "DEBOO2"
+         	#except:
+         	#    print "DEBOO3"
+         	#    self.NLTK = TweetMatch.getClassifier('null')
+                #    print "DEBOO4"
         
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
