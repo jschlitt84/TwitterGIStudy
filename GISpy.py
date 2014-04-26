@@ -7,6 +7,7 @@ import unicodedata
 import tweepy
 import smtplib
 import cPickle
+import TweetMatch
 
 import gDocsImport as gd
 
@@ -285,6 +286,10 @@ def giSpyGDILoad(gDocURL,directory):
         cfg['Logins'] = [account['login']]
     cfg['GDI'] = gdi
     cfg['UseGDI'] = True
+    
+    #if cfg['OnlyKeepNLTK'] != False and cfg['OnlyKeepNLTK'] != 'null':
+    #    if type(cfg['OnlyKeepNLTK']) != list:
+    #        cfg['OnlyKeepNLTK'] = [str(cfg['OnlyKeepNLTK'])]
     
     if not public:
         uglyLists = gd.getScript(account['userName'], account['password'], account['fileName'], gdiLists, -1, "default", False, [])
@@ -721,11 +726,14 @@ def dictToJsonFix(jsonOut):
             jsonOut[row] = json.dump(jsonOut[row])   
 
 
-def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, keepTypes):
+def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, keepTypes,NLTKClassifier):
     count = 0
     collectedContent = []
     collectedTypes = {}
     geoPickle = dict(pickleMgmt.items())
+    
+    useNLTK = NLTKClassifier != 'null' and NLTKClassifier != False
+    
     for fileName in fileList:
             inFile = open(directory+fileName)
             content = json.load(inFile)
@@ -757,11 +765,13 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
                             'day':timeData['day'],
                             'time':timeData['time'],
                             'date':timeData['date']}
+                        if useNLTK:
+                            collectedTypes[str(tweet['id'])]['nltkCat'] = str(TweetMatch.classifySingle(tweet['text'],NLTKClassifier))
                         
-
                     filteredContent.append(tweet)
             
-            collectedContent += filteredContent                  
+            collectedContent += filteredContent  
+            #print "DEBOOO123", useNLTK,cfg['OnlyKeepNLTK'],count,len(collectedContent) , len(collectedTypes)              
             filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
             
             outName = fileName.replace('Raw','FilteredTweets')
@@ -777,7 +787,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
     out_q.put({'content'+str(core):collectedContent})        
 
 
-def reformatOld(directory, lists, cfg, geoCache):
+def reformatOld(directory, lists, cfg, geoCache, NLTKClassifier):
     """Keeps old content up to date with latests queries & settings"""
     keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
     homeDirectory = directory
@@ -810,7 +820,8 @@ def reformatOld(directory, lists, cfg, geoCache):
         processes = []
 
         for i in range(cores):
-            p = Process(target = getReformatted, args = (directory, lists, cfg, pickleMgmt, fileList[block*i:block*(i+1)], i, out_q, keepTypes))
+        #for i in range(1):
+            p = Process(target = getReformatted, args = (directory, lists, cfg, pickleMgmt, fileList[block*i:block*(i+1)], i, out_q, keepTypes, NLTKClassifier))
             
             processes.append(p)
             p.start() 
@@ -845,7 +856,7 @@ def reformatOld(directory, lists, cfg, geoCache):
         orderedKeys = sorted(collectedContent[0].keys())
         orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
         
-	if cfg['OnlyKeepNLTK']:
+	if cfg['OnlyKeepNLTK'] != False:
 		addKeys = []
         else:
 		addKeys = ["score","check3","check2","check1"]
@@ -860,6 +871,10 @@ def reformatOld(directory, lists, cfg, geoCache):
                     collectedContent[pos][key] = 'NaN'
                 else:
                     collectedContent[pos][key] = stripUnicode(collectedContent[pos][key])
+        
+        if cfg['OnlyKeepNLTK'] != False:
+		collectedContent = [entry for entry in collectedContent if str(entry['nltkCat']) in cfg['OnlyKeepNLTK']]
+        
         
         print "Writing collected tweets to "+outName+".csv"   
         outFile = open(directory+outName+'.csv', "w") 

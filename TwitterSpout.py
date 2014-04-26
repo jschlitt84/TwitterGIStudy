@@ -3,6 +3,7 @@ import json
 import tweepy
 import time
 import random
+import TweetMatch
 
 from GISpy import *
 from giListener import *
@@ -93,8 +94,12 @@ def getViaStream(login, cfg, conditions, qualifiers, exclusions, geoCache):
 
 def main():
     usingGDoc = False
+    NLTKClassifier = 'null'
+    keepKeys = 'null'
+    
     skipReformat = '-s' in sys.argv
     quickReformat = '-r' in sys.argv and not skipReformat
+    
     try: 
         userLogin = sys.argv[2]
         print "Login '%s' passed explicitly" % (userLogin)
@@ -130,8 +135,20 @@ def main():
         cfg['Directory'] = directory
         geoCache = dict()
         updateGeoPickle(geoCache,directory+pickleName)
+        
+        if cfg['OnlyKeepNLTK'] != False:
+            temp = cfg['OnlyKeepNLTK']
+            if type(temp) is str:
+                cfg['OnlyKeepNLTK'] = temp.split('_')
+            if type(temp) is list:
+                cfg['OnlyKeepNLTK'] = temp
+	    if type(cfg['OnlyKeepNLTK']) is not list:
+		cfg['OnlyKeepNLTK'] = [str(temp)]
+            cfg['OnlyKeepNLTK'] = [str(key) for key in cfg['OnlyKeepNLTK']]
+            NLTKClassifier = TweetMatch.getClassifier(cfg['NLTKFile'])
+        
         if not skipReformat:
-	    reformatOld(directory,lists,cfg,geoCache)
+	    reformatOld(directory,lists,cfg,geoCache,NLTKClassifier)
             if quickReformat:
                 quit()        	
 	    updateGeoPickle(geoCache,directory+pickleName)
@@ -146,7 +163,7 @@ def main():
         geoCache = dict()
         updateGeoPickle(geoCache,directory+pickleName)
 	if not skipReformat:        
-		reformatOld(directory,lists,cfg, geoCache) 
+		reformatOld(directory,lists,cfg,geoCache,NLTKClassifier) 
 		if quickReformat:
 			quit()        
 		updateGeoPickle(geoCache,directory+pickleName)
@@ -167,6 +184,8 @@ def main():
                     None
  
         login = logins[userLogin]
+    
+    del NLTKClassifier
     
     if cfg['MultiLogin']:
         for key in login.keys():

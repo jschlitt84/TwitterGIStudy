@@ -21,6 +21,7 @@ class giSeeker():
         self.rateIncrement = 900
         self.geoCache = geoCache
         self.useNLTK = False
+        self.NLTK = 'null'
         
         if cfg['OnlyKeepNLTK'] != False:
             global TweetMatch
@@ -36,14 +37,7 @@ class giSeeker():
             self.cfg['OnlyKeepNLTK'] = [str(key) for key in self.cfg['OnlyKeepNLTK']]
             
             if '-f' not in cfg['args']:
-            	#try:
-            	#    print "DEBOO1"
             	self.NLTK = TweetMatch.getClassifier(cfg['NLTKFile'])
-            	#    print "DEBOO2"
-         	#except:
-         	#    print "DEBOO3"
-         	#    self.NLTK = TweetMatch.getClassifier('null')
-                #    print "DEBOO4"
         
         giSeeker.flushTweets(self)
         giSeeker.makeQueries(self)
@@ -128,7 +122,7 @@ class giSeeker():
                 self.cfg = temp['config']
                 self.cfg['_login_'] = temp['login']
                 self.cfg['Directory'] = directory
-                reformatOld(directory, lists, self.cfg, self.geoCache)
+                reformatOld(directory, lists, self.cfg, self.geoCache,self.NLTK)
                 print "Sending results to GDI user"
                 try:
                     sendCSV(self.cfg,directory)
@@ -137,7 +131,7 @@ class giSeeker():
                 
             else:
                 lists = updateWordBanks(directory, self.cfg)
-                reformatOld(directory, lists, self.cfg, self.geoCache)
+                reformatOld(directory, lists, self.cfg, self.geoCache,self.NLTK)
                 self.cfg = getConfig(directory+self.cfg['ConfigFile'])
                 
             if self.cfg['UseStacking']:
@@ -256,7 +250,7 @@ class giSeeker():
             allFound = 0
  
             if self.multiAPI:
-		print "DEBOOO MULTIAPI"
+		print "Multi-api mode in use"
 		failCount = dict([key,0] for key in self.api.keys())
             	APIoffline = dict([key, 0] for key in self.api.keys())
 
@@ -475,6 +469,9 @@ class giSeeker():
                         'day':tweetLocalTime['day'],
                         'time':tweetLocalTime['time'],
                         'date':tweetLocalTime['date']}
+                    if self.cfg['OnlyKeepNLTK']:
+                        self.tweetTypes[str(status.id)]['nltkCat'] = TweetMatch.classifySingle(status.text,self.NLTK)
+                    
             
             if newDay:
                 giSeeker.saveTweets(self)
@@ -642,7 +639,9 @@ class giListener(tweepy.StreamListener):
                         'fineLocation':geoType['trueLoc'],
                         'day':tweetLocalTime['day'],
                         'time':tweetLocalTime['time'],
-                        'date':tweetLocalTime['date']}             
+                        'date':tweetLocalTime['date']} 
+                if self.cfg['OnlyKeepNLTK']:
+                    self.tweetTypes[str(status.id)]['nltkCat'] = TweetMatch.classifySingle(status.text,self.NLTK)            
                 
         except Exception, e:
             print "Encountered exception:", e
