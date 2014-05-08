@@ -119,8 +119,44 @@ class giSeeker():
             if self.cfg['UseGDI']:
                 temp = giSpyGDILoad(self.cfg['GDI']['URL'],self.cfg['Directory'])
                 lists = temp['lists']
+                
+                #print "DEBOO1", self.cfg['_login_'], '\n', self.api
+                
                 self.cfg = temp['config']
-                self.cfg['_login_'] = temp['login']
+                
+                
+                #ATTEMPTED LOGIN HANDLER FIX
+                
+                geoTemp = getGeo(self.cfg)
+            
+                if geoTemp == "STACK":
+                    self.cfg['UseStacking'] = True
+                    self.geo = "STACK"
+                else:
+                    self.geo = geoString(getGeo(cfg))
+                
+                logins = temp['login']
+                if type(logins) is list:
+                    login = getLogins(directory,logins)
+       	            self.cfg['MultiLogin'] = True
+                else:
+                    login = getLogins(directory,[logins])[logins]
+                if self.cfg['MultiLogin']:
+                    for key in login.keys():
+                        temp2 = getAuth(login[key])
+                        login[key]['auth'] = temp2['auth']
+                        login[key]['api'] = temp2['api']
+                        time.sleep(3)
+                else:
+                    temp2 = getAuth(login)
+                    login['auth'] = temp2['auth']
+                    login['api'] = temp2['api']
+                    login['name'] = self.cfg['userLogin']
+                
+                self.cfg['_login_'] = login
+                #print "DEBOO2", self.cfg['_login_'], '\n', self.api
+                #END TEST CODE
+                
                 self.cfg['Directory'] = directory
                 reformatOld(directory, lists, self.cfg, self.geoCache,self.NLTK)
                 print "Sending results to GDI user"
@@ -135,7 +171,7 @@ class giSeeker():
                 self.cfg = getConfig(directory+self.cfg['ConfigFile'])
                 
             if self.cfg['UseStacking']:
-                temp = fillBox(cfg,self)
+                temp = fillBox(self.cfg,self)
                 tempPoints = self.stackPoints
                 
                 if tempPoints != temp['list'] or tempQueries != self.queries:
@@ -383,14 +419,30 @@ class giSeeker():
                         except:
                             loggedIn = False
                             while not loggedIn:
-                                print "Login error, will sleep 60 seconds and attempt reconnection"
-                                time.sleep(60)
-                                try:
-                                    self.api = getAuth(self.cfg['_login_'])['api']
-                                    print "Login successfull"
-                                    loggedIn =  True
-                                except:
-                                    print "Login unsuccessfull\n"
+                                    if not self.multiAPI:
+					print "Login error, will sleep 120 before reconnection, error code:",e
+                                        time.sleep(120 + randint(-3,3))
+				    else:
+					failCount[chosen] += 1
+				    try:
+                                        if self.multiAPI:
+						if len(chooseable) == 0:
+							print "All logins down, will sleep 2 minutes before reconnection, error code:",e
+							chosen = [key for key, value in APIoffline.iteritems() if value == min(APIoffline.values())][0]
+							time.sleep(120)
+							failCount[chosen] = 0
+							APIoffline[chosen] = 0
+                                        	if failCount[chosen] <= 2:
+                                            		self.api[chosen]['api'] = getAuth(self.cfg['_login_'][chosen])['api']
+                                            	else:
+                                            		APIoffline[chosen] = 100
+                                        else:
+                                            self.api = getAuth(self.cfg['_login_'])['api']
+                                        print "Login successfull"
+                                        loggedIn =  True
+                                    except Exception,e:
+                                        print "Login unsuccessfull\n",e
+                                    
                 
             idList = set()            
             inBox = mappable = 0

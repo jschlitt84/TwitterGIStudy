@@ -198,7 +198,8 @@ def main():
         login['auth'] = temp['auth']
         login['api'] = temp['api']
         login['name'] = userLogin
-        
+    
+    cfg['userLogin'] = userLogin    
     cfg['_login_'] = login
     cfg['Directory'] = directory
     cfg['args'] = sys.argv  
