@@ -261,14 +261,25 @@ class giSeeker():
         """Formats query list and splits into < 1k character segments"""
         self.queries = []
         text = '"'+self.conditions[0]+'"'
+        
         for item in self.conditions[1:]:
             entry = ' OR "' + item + '"'
             if len(text + entry) >= 300:
-                self.queries.append(text + ' -"rt @"')
+                
+                if not self.cfg['KeepRetweets']:
+                    self.queries.append(text + ' -"rt @"')
+                else:
+                    self.queries.append(text)
+                
                 text = '"'+item+'"'
             else:
                 text += entry
-        self.queries.append(text + ' -"rt @"')
+                
+        if not self.cfg['KeepRetweets']:
+            self.queries.append(text + ' -"rt @"')
+        else:
+            self.queries.append(text)
+            
         for item in self.queries:
             print "Query Length: %s\tContents:\n%s\n" % (len(item), item)
                 
