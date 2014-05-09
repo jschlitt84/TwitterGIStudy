@@ -672,14 +672,14 @@ def getGeo(cfg):
     
 
 
-def checkTweet(conditions, qualifiers, exclusions, text):
+def checkTweet(conditions, qualifiers, exclusions, text, cfg):
   """Checks if tweet matches search criteria"""
   text = text.lower()
   foundCondition = False
   foundQualifier = False
   foundExclusion = False
   
-  if "rt @" in text:
+  if "rt @" in text and not cfg['KeepRetweets']:
     return "retweet"
   else:
     for word in exclusions:
@@ -751,7 +751,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
                 #if count%cfg['PickleInterval'] == 0:
                 #    updateGeoPickle(pickleMgmt,cfg['Directory']+pickleName)
                 tweet['text'] = tweet['text'].replace('\n',' ')
-                tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
+                tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'], cfg)
                 if tweetType in keepTypes:
                     geoType = isInBox(cfg,geoPickle,tweet)
                     if geoType['inBox'] or cfg['KeepUnlocated']:
@@ -1054,7 +1054,8 @@ def getConfig(directory):
                 'Logins':'NoLoginsFound','UseGDI':False,
                 'UseStacking':False,'KeepUnlocated':False,
                 'PickleInterval':500,'PatientGeocoding':True,
-                'OnlyKeepNLTK':False,'MultiLogin':False}
+                'OnlyKeepNLTK':False,'MultiLogin':False,
+                'KeepRetweets':False}
     
     if type(directory) is str:
         if directory == "null":

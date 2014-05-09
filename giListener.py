@@ -60,13 +60,8 @@ class giSeeker():
             self.geo = geoString(getGeo(cfg))
             
         if type(api) is dict:
-            if self.geo == "STACK":
-                print "Using multiple API login method"
-                self.multiAPI = True
-            else:
-                print "Using single API login method"
-                self.api = self.api[self.api.keys()[0]]
-                self.multiAPI = False
+            print "Using multiple API login method"
+            self.multiAPI = True
         else:
             print "Using single API login method"
             self.multiAPI = False
@@ -122,7 +117,8 @@ class giSeeker():
                 
                 #print "DEBOO1", self.cfg['_login_'], '\n', self.api
                 
-                self.cfg = temp['config']
+                for key in temp['config'].keys():
+                    self.cfg[key] = temp['config'][key]
                 
                 
                 #ATTEMPTED LOGIN HANDLER FIX
@@ -402,11 +398,29 @@ class giSeeker():
             
                             #Method 2: Since id stream, may miss if keyword set yields over 100 new results
     
-                            cellCollected = self.api.search(q = query, 
-                                                    since_id = self.lastTweet,  
-                                                    geocode = self.geo,
-                                                    result_type="recent",
-                                                    count = 100)
+                            if self.multiAPI:
+                                numOffline = sum((1 for key in APIoffline if APIoffline[key] != 0))
+                                APIoffline = {key:max(value-1,0) for key,value in APIoffline.iteritems()}
+				chooseable = [key for key,value in APIoffline.iteritems() if value == 0]
+
+				if len(chooseable) > 0:
+				    chosen = choice(chooseable)
+				cellCollected = self.api[chosen]['api'].search(q = query, 
+                                        since_id = self.lastTweet,  
+                                        geocode = self.geo,
+                                        result_type="recent",
+                                        count = 100)
+                                failCount[chosen] = 0
+				time.sleep(uniform(0,.05))
+                                    
+                            else:    
+                                cellCollected = self.api.search(q = query, 
+                                                        since_id = self.lastTweet,  
+                                                        geocode = self.geo,
+                                                        result_type="recent",
+                                                        count = 100)
+                                                    
+                                                    
                             if self.useNLTK:
                                     cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
                                 
@@ -416,7 +430,7 @@ class giSeeker():
                             collected += cellCollected    
                                 
                             ranSearch = True
-                        except:
+                        except Exception,e:
                             loggedIn = False
                             while not loggedIn:
                                     if not self.multiAPI:
@@ -469,7 +483,7 @@ class giSeeker():
                     self.startTime = localTime(status.created_at,self.cfg).strftime(timeArgs)
                     
                 text = status.text.replace('\n',' ')
-                tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
+                tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text, self.cfg)
                 #print json.loads(status.json).keys()
                 percentFilled = (self.tweetCount*100)/self.cfg['StopCount']
                 
@@ -645,7 +659,7 @@ class giListener(tweepy.StreamListener):
             if self.startDay != localTime(datetime.datetime.today(),self.cfg).strftime("%A") or self.tweetCount >= self.cfg['StopCount']:
                 giListener.saveTweets(self)
             text = status.text.replace('\n',' ')
-            tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text)
+            tweetType = checkTweet(self.conditions, self.qualifiers, self.exclusions, text, self.cfg)
             
             geoType =  isInBox(self.cfg, self.geoCache, status)
 
