@@ -133,7 +133,7 @@ class giSeeker():
                     self.cfg['UseStacking'] = True
                     self.geo = "STACK"
                 else:
-                    self.geo = geoString(getGeo(cfg))
+                    self.geo = geoString(getGeo(self.cfg))
                 
                 logins = temp['login']
                 if type(logins) is list:
