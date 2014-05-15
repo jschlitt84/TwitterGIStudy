@@ -259,8 +259,15 @@ def giSpyGDILoad(gDocURL,directory):
     else:
         emails = gd.getLine('null', 'null', gDocURL, gdiEmail, False, [])
     
-    gdi['Email'] = emails[0].replace(' ',',')
-    gdi['CC'] = emails[1].replace(' ',',')
+    try:
+        gdi['Email'] = emails[0].replace(' ',',')
+    except:
+        gdi['Email'] = ""
+    try:
+        gdi['CC'] = emails[1].replace(' ',',')
+    except:
+        gdi['CC'] = ""
+        
     gdi['URL'] = gDocURL
     gdi['UserName'] = account['userName']
     gdi['Password'] = account['password']
