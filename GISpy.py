@@ -594,6 +594,7 @@ def isInBox(cfg,geoCache,status):
         
             
     if (type(userLoc) is unicode or type(userLoc) is str) and userLoc != None and userLoc != "None" and not coordsWork:
+        userLoc = stripUnicode(userLoc)
         if ':' in userLoc:
             coordinates = str(userLoc[userLoc.index(':')+1:]).split(',')[::-1]
             try:
