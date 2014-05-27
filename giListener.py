@@ -500,6 +500,8 @@ class giSeeker():
                 
                 
                 geoType = isInBox(self.cfg, self.geoCache, status)
+                geoStrictKeep = geoType['inBox'] or not self.cfg['StrictGeoFilter']
+                wordStrictKeep = (tweetType != 'excluded' and tweetType != 'retweet') or not self.cfg['StrictWordFilter']
                 tweetLocalTime = outTime(localTime(status,self.cfg))
                 inBox += geoType['inBox']
                 
@@ -510,32 +512,34 @@ class giSeeker():
                                     status.author.screen_name, 
                                     tweetLocalTime['full'], 
                                     status.source,)
-                        if geoType['inBox']:
-                            mappable += 1
-                        self.tweetCount += self.cfg['KeepAccepted']
-                        self.acceptedCount += 1
-                        self.jsonAccepted.append(status.json)
+                        if geoStrictKeep:
+                            mappable += 1    
+                            self.tweetCount += self.cfg['KeepAccepted']
+                            self.acceptedCount += 1
+                            self.jsonAccepted.append(status.json)
                     elif tweetType == "excluded":
                         print loginInfo, "\033[91m%s\t%s\t%s\t%s\033[0m" % (text, 
                                     status.author.screen_name, 
                                     tweetLocalTime['full'], 
                                     status.source,)
-                        self.tweetCount += self.cfg['KeepExcluded']
-                        self.excludedCount += 1
-                        self.jsonExcluded.append(status.json)
+                        if geoStrictKeep and wordStrictKeep:
+                            self.tweetCount += self.cfg['KeepExcluded']
+                            self.excludedCount += 1
+                            self.jsonExcluded.append(status.json)
                     elif tweetType == "partial":
                         print loginInfo, "%s\t%s\t%s\t%s" % (text, 
                                     status.author.screen_name, 
                                     tweetLocalTime['full'], 
                                     status.source,)
-                        self.tweetCount += self.cfg['KeepPartial']
-                        self.partialCount += 1
-                        self.jsonPartial.append(status.json)
+                        if geoStrictKeep:
+                            self.tweetCount += self.cfg['KeepPartial']
+                            self.partialCount += 1
+                            self.jsonPartial.append(status.json)
                     elif tweetType == "retweet":
                         None
                     else:
                         self.irrelevantCount += 1
-                if tweetType != "retweet" and self.cfg['KeepRaw'] == True:
+                if tweetType != "retweet" and self.cfg['KeepRaw'] == True and geoStrictKeep and wordStrictKeep:
                     self.jsonRaw.append(status.json)
                     self.tweetTypes[str(status.id)] = {'tweetType':tweetType,
                         'geoType':geoType['text'],

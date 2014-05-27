@@ -234,12 +234,25 @@ def loadGDIAccount(gDocURL,directory):
         frequency = 900
     else:
         frequency = int(freqLine.split(' = ')[1].replace(' ','').replace('\n',''))
+    
+    found = False
+    for line in content:
+        if experimentName+'.sanitize' in line:
+            sanLine = line
+            found = True
+            break
+    if not found:
+        sanitize = False
+    else:
+        sanitize = 'true' in sanLine.lower()
+    
     return {'name':experimentName,
         'login':login,
         "userName": _userName_,
         'password': _password_,
         'frequency': frequency,
         'fileName': fileName,
+        'sanitize': sanitize,
         'public':public}
         
     
@@ -287,6 +300,8 @@ def giSpyGDILoad(gDocURL,directory):
     cfg = getConfig(config)
     cfg['OutDir'] = account['name'] + '/'
     cfg['FileName'] = account['name']
+    cfg['Sanitize'] =  account['sanitize']
+    
     if type(account['login']) is list:
         cfg['Logins'] = account['login']
     else:
@@ -882,6 +897,9 @@ def reformatOld(directory, lists, cfg, geoCache, NLTKClassifier):
         
         if cfg['OnlyKeepNLTK'] != False:
 		collectedContent = [entry for entry in collectedContent if str(entry['nltkCat']) in cfg['OnlyKeepNLTK']]
+		
+        if cfg['Sanitize'] != False:
+            collectedContent = [sanitizeTweet(tweet) for tweet in collectedContent]
         
         
         print "Writing collected tweets to "+outName+".csv"   
@@ -1051,6 +1069,7 @@ def cleanJson(jsonOriginal, cfg, types):
 
 def getConfig(directory):
     """Loads configuration from file config"""
+    hidden = ['Sanitize','login']
     TweetData = 'all'
     UserData = {}
     #default values
@@ -1063,7 +1082,8 @@ def getConfig(directory):
                 'UseStacking':False,'KeepUnlocated':False,
                 'PickleInterval':500,'PatientGeocoding':True,
                 'OnlyKeepNLTK':False,'MultiLogin':False,
-                'KeepRetweets':False}
+                'KeepRetweets':False,'StrictGeoFilter':False,
+                'StrictWordFilter':False,'Sanitize':False}
     
     if type(directory) is str:
         if directory == "null":
@@ -1084,6 +1104,8 @@ def getConfig(directory):
     elif type(directory) is list:
         content = directory
         useGDI = True
+    
+    content = [line for line in content if str(line[0]) not in hidden]
 
     for line in content:
         if len(str(line[0])) != 0 and len(str(line[1])) != 0 and not str(line[0]).startswith('#'):
@@ -1132,4 +1154,16 @@ def textToList(string):
         text = text.replace('  ',' ')
     listed = text.split(' ')
     return listed
+    
+def sanitizeTweet(tweet):
+    words = tweet['text'].split(' ')
+    words = [(word[0]!='@')*word + (word[0]=='@')*"@ATweeter" for word in words]
+    tweet['text'] = ' '.join(words)
+    if 'user_screen_name' in tweet.keys():
+        tweet['user_screen_name'] = "ATweeter"
+    tweet['lat'] = float(str(tweet['lat'])[:-2])
+    tweet['lon'] = float(str(tweet['lon'])[:-2])
+    return tweet
+
+    
         
