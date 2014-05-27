@@ -1083,7 +1083,8 @@ def getConfig(directory):
                 'PickleInterval':500,'PatientGeocoding':True,
                 'OnlyKeepNLTK':False,'MultiLogin':False,
                 'KeepRetweets':False,'StrictGeoFilter':False,
-                'StrictWordFilter':False,'Sanitize':False}
+                'StrictWordFilter':False,'Sanitize':False,
+                'KeepDiscardsNLTK':False,'DiscardSampleNLTK':0}
     
     if type(directory) is str:
         if directory == "null":
@@ -1133,6 +1134,11 @@ def getConfig(directory):
     except:
         None
         
+    try:
+        params['KeepDiscardsNLTK'] = 0 < float(params['DiscardSampleNLTK']) <= 1
+    except:
+        None
+        
         
     for key in sorted(params.keys()):
         print  '\t*', key,':', params[key]
@@ -1157,13 +1163,16 @@ def textToList(string):
     
 def sanitizeTweet(tweet):
     words = tweet['text'].split(' ')
-    words = [(word[0]!='@')*word + (word[0]=='@')*"@ATweeter" for word in words]
+    words = [wordSwap(word) for word in words]
     tweet['text'] = ' '.join(words)
     if 'user_screen_name' in tweet.keys():
         tweet['user_screen_name'] = "ATweeter"
     tweet['lat'] = float(str(tweet['lat'])[:-2])
     tweet['lon'] = float(str(tweet['lon'])[:-2])
     return tweet
-
     
-        
+def wordSwap(word):
+    if len(word) > 0:
+        if word[0] == '@':
+            return "@ATweeter"
+    return word

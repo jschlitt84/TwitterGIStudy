@@ -339,7 +339,11 @@ class giSeeker():
                                 
                                 allFound += len(cellCollected)
 				if self.useNLTK:
-                                    cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
+				    if self.cfg['KeepDiscardsNLTK']:
+				        cellCollected = [status for status in cellCollected if status.id not in foundIDs and (TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] or uniform(0,1)<self.cfg['DiscardSampleNLTK'])]
+
+				    else:
+                                        cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
                                 
                                 for cell in cellCollected:
                                     foundIDs.add(cell.id)
@@ -431,9 +435,12 @@ class giSeeker():
                                                         result_type="recent",
                                                         count = 100)
                                                     
-                                                    
                             if self.useNLTK:
-                                    cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
+				    if self.cfg['KeepDiscardsNLTK']:
+				        cellCollected = [status for status in cellCollected if status.id not in foundIDs and (TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] or uniform(0,1)<self.cfg['DiscardSampleNLTK'])]
+
+				    else:
+                                        cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]                        
                                 
                             for cell in cellCollected:
                                 foundIDs.add(cell.id)
