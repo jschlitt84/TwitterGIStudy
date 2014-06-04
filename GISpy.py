@@ -798,10 +798,12 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
             filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
             
             outName = fileName.replace('Raw','FilteredTweets')
-            print "\tSaving file as", outName
-            with open(directory+outName, 'w') as outFile:
-                json.dump(filteredContent,outFile)
-            outFile.close()
+
+            if cfg['MakeFilteredJson']:
+                print "\tSaving file as", outName
+                with open(directory+outName, 'w') as outFile:
+                    json.dump(filteredContent,outFile)
+                outFile.close()
             
     collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
     pickleMgmt = Manager().dict(geoPickle)        
@@ -1084,7 +1086,8 @@ def getConfig(directory):
                 'OnlyKeepNLTK':False,'MultiLogin':False,
                 'KeepRetweets':False,'StrictGeoFilter':False,
                 'StrictWordFilter':False,'Sanitize':False,
-                'KeepDiscardsNLTK':False,'DiscardSampleNLTK':0}
+                'KeepDiscardsNLTK':False,'DiscardSampleNLTK':0,
+                'MakeFilteredJson':False}
     
     if type(directory) is str:
         if directory == "null":

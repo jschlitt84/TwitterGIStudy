@@ -19,5 +19,7 @@ GeoPickle.txt
 *.swp
 */search/*
 GunTrackerNLTK.csv
-
+lymeScores.csv
 NLTK_Ready_Tweets.csv
+
+gdiAccountsTemp
