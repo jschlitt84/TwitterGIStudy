@@ -1172,6 +1172,7 @@ def sanitizeTweet(tweet):
         tweet['user_screen_name'] = "ATweeter"
     tweet['lat'] = float(str(tweet['lat'])[:-2])
     tweet['lon'] = float(str(tweet['lon'])[:-2])
+    tweet['id'] = int(str(tweet['id'])[:-2]+'00')
     return tweet
     
 def wordSwap(word):
