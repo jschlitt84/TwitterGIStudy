@@ -155,11 +155,16 @@ class giSeeker():
                 
                 self.cfg['Directory'] = directory
                 reformatOld(directory, lists, self.cfg, self.geoCache,self.NLTK)
-                print "Sending results to GDI user"
-                try:
-                    sendCSV(self.cfg,directory)
-                except:
-                    print "Unable to send email"
+                
+                tillSend =  datetime.datetime.now().day % self.cfg['SendEvery']
+                if tillSend == 0:
+                    print "Sending results to GDI user"
+                    try:
+                        sendCSV(self.cfg,directory)
+                    except:
+                        print "Unable to send email"
+                else:
+                    print "Sending next report in", tillSend, "days"  
                 
             else:
                 lists = updateWordBanks(directory, self.cfg)

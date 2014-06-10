@@ -1087,7 +1087,7 @@ def getConfig(directory):
                 'KeepRetweets':False,'StrictGeoFilter':False,
                 'StrictWordFilter':False,'Sanitize':False,
                 'KeepDiscardsNLTK':False,'DiscardSampleNLTK':0,
-                'MakeFilteredJson':False}
+                'MakeFilteredJson':False,'SendEvery':1}
     
     if type(directory) is str:
         if directory == "null":
@@ -1170,8 +1170,10 @@ def sanitizeTweet(tweet):
     tweet['text'] = ' '.join(words)
     if 'user_screen_name' in tweet.keys():
         tweet['user_screen_name'] = "ATweeter"
-    tweet['lat'] = float(str(tweet['lat'])[:-2])
-    tweet['lon'] = float(str(tweet['lon'])[:-2])
+    if tweet['lat'] != 'NaN':
+        tweet['lat'] = float(str(tweet['lat'])[:-2])
+    if tweet['lon'] != 'NaN':
+        tweet['lon'] = float(str(tweet['lon'])[:-2])
     tweet['id'] = int(str(tweet['id'])[:-2]+'00')
     return tweet
     
