@@ -13,7 +13,7 @@ sleepEvery = (secondsPerDay*daysToRefresh)/delay
 while True:
     count += 1
     try:
-        fileIn = open(sys.argv[1])
+        fileIn = open(str(sys.argv[1]))
     except:
         fileIn = open('gdiAccounts')
     
