@@ -156,7 +156,7 @@ class giSeeker():
                 self.cfg['Directory'] = directory
                 reformatOld(directory, lists, self.cfg, self.geoCache,self.NLTK)
                 
-                tillSend =  datetime.datetime.now().day % self.cfg['SendEvery']
+                tillSend =  datetime.datetime.now().day % int(self.cfg['SendEvery'])
                 if tillSend == 0:
                     print "Sending results to GDI user"
                     try:
