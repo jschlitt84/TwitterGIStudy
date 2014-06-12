@@ -77,14 +77,15 @@ def prepTweet(word):
     text = text.replace("&amp",'&') #cleanup conversion bug
     
     punctuations = ".,\"-_%!=+\n\t:;()*&$"
-    for char in punctuations:
+    
+    """for char in punctuations:
         text = text.replace(char,' ')
     while '  ' in text:
         text = text.replace('  ',' ')
     while text.startswith(' '):
         text = text[1:]
     while text.endswith(' '):
-        text = text[:-1]
+        text = text[:-1]"""
     
     #Remove accentuated characters
     text = unicode(text)
@@ -92,6 +93,18 @@ def prepTweet(word):
         
     #End of string operations, continuing with list ops.    
     listed = text.split(' ')
+    
+    for pos in range(len(listed)):
+        if not listed[pos].startswith('http'):
+            for char in punctuations:
+                text = listed[pos].replace(char,' ')
+                while '  ' in text:
+                    text = text.replace('  ',' ')
+                while text.startswith(' '):
+                    text = text[1:]
+                while text.endswith(' '):
+                    text = text[:-1]
+            listed[pos] = text
         
     if "@" in original: #track presence of conversations but remove screen names
         listed = [word for word in listed if '@' not in word]

@@ -14,8 +14,10 @@ while True:
     count += 1
     try:
         fileIn = open(str(sys.argv[1]))
+        print "Opened file",sys.argv[1]
     except:
         fileIn = open('gdiAccounts')
+        print "Opened file gdiAccounts"
     
     urls = set()
     
