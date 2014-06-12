@@ -3,6 +3,7 @@ import csv
 import sys
 import unicodedata
 import pandas as pd
+import urllib
 
 import nltk.classify.util
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -72,8 +73,8 @@ def prepText(content):
 def prepTweet(word):
     
     word =  stripUnicode(word)
-    original = text = str(word).lower() #switch to lowercase
-        
+    original = text = str(word)
+    
     text = text.replace("&amp",'&') #cleanup conversion bug
     
     punctuations = ".,\"-_%!=+\n\t:;()*&$"
@@ -104,7 +105,11 @@ def prepTweet(word):
                     text = text[1:]
                 while text.endswith(' '):
                     text = text[:-1]
-            listed[pos] = text
+            listed[pos] = text.lower()
+        """else:
+            linked = urllib.urlopen(listed[pos])
+            if linked.getcode() == 200:
+                listed[pos] = linked.url"""
         
     if "@" in original: #track presence of conversations but remove screen names
         listed = [word for word in listed if '@' not in word]
