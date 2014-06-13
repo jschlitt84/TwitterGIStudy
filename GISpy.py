@@ -1170,9 +1170,9 @@ def sanitizeTweet(tweet):
     tweet['text'] = ' '.join(words)
     if 'user_screen_name' in tweet.keys():
         tweet['user_screen_name'] = "ATweeter"
-    if str(tweet['lat']).lower() != 'nan':
+    if str(tweet['lat']).lower() != 'nan' and len(str(tweet['lat'])) > 4:
         tweet['lat'] = float(str(tweet['lat'])[:-2])
-    if str(tweet['lon']).lower() != 'nan':
+    if str(tweet['lon']).lower() != 'nan' and len(str(tweet['lon'])) > 4:
         tweet['lon'] = float(str(tweet['lon'])[:-2])
     tweet['id'] = int(str(tweet['id'])[:-2]+'00')
     return tweet
