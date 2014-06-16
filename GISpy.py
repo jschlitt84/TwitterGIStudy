@@ -933,7 +933,7 @@ def getTags(cfg,data):
     nDays = 5
     nTags = 10
     dates =[]
-    for entry in data():
+    for entry in data:
         dates.append(entry['created_at'])
     print "MAXDATE", max(dates)
     rightBound = max(dates)
