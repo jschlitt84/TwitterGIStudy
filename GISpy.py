@@ -769,7 +769,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
                 jsonToDictFix(content)
             
             if  cfg['DaysBack'] != 'all' and type(cfg['DaysBack']) is int:
-                leftBound = datetime.datetime.now() - datetime.timedelta(days = cfg['DaysBack'])
+                leftBound = datetime.datetime.utcnow() - datetime.timedelta(days = cfg['DaysBack'])
                 content = [item for item in content if parser.parse(item['created_at']) > leftBound]
             
             for tweet in content:
