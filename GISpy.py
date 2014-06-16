@@ -750,7 +750,7 @@ def dictToJsonFix(jsonOut):
             jsonOut[row] = json.dump(jsonOut[row])   
 
 
-def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, keepTypes,NLTKClassifier):
+def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, keepTypes, NLTKClassifier):
     count = 0
     collectedContent = []
     collectedTypes = {}
@@ -767,6 +767,10 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
             
             if lists != "null":
                 jsonToDictFix(content)
+            
+            if  cfg['DaysBack'] != 'all' and type(cfg['DaysBack']) is int:
+                leftBound = datetime.datetime.now() - datetime.timedelta(days = cfg['DaysBack'])
+                content = [item for item in content if parser.parse(item['created_at']) > leftBound]
             
             for tweet in content:
                 count += 1
@@ -1020,7 +1024,7 @@ def getConfig(directory):
                 'KeepDiscardsNLTK':False,'DiscardSampleNLTK':0,
                 'MakeFilteredJson':False,'SendEvery':1,
                 'TrackHashTags':False,'TrackHashDays':10,
-                'TrackHashCount':5}
+                'TrackHashCount':5,'DaysBack':'all'}
     
     if type(directory) is str:
         if directory == "null":
