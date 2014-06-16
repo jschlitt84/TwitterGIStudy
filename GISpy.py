@@ -878,76 +878,80 @@ def reformatOld(directory, lists, cfg, geoCache, NLTKClassifier):
         
         jsonToDictFix(collectedContent)
 	collectedContent = uniqueJson(collectedContent)        
-
-        orderedKeys = sorted(collectedContent[0].keys())
-        orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
         
-	if cfg['OnlyKeepNLTK'] != False:
-		addKeys = []
+        if len(collectedContent) == 0:
+            print "No tweets match criteria, csv will not be generated"
+            return geoCache
         else:
-		addKeys = ["score","check3","check2","check1"]
+            orderedKeys = sorted(collectedContent[0].keys())
+            orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
+            
+   	    if cfg['OnlyKeepNLTK'] != False:
+  		addKeys = []
+            else:
+  		addKeys = ["score","check3","check2","check1"]
+            
+   	    for key in addKeys:
+                if key not in orderedKeys:  
+                    orderedKeys.insert(1,key)
+                    
+            for pos in range(len(collectedContent)):
+                for key in orderedKeys:
+                    if key not in collectedContent[pos].keys():
+                        collectedContent[pos][key] = 'NaN'
+                    else:
+                        collectedContent[pos][key] = stripUnicode(collectedContent[pos][key])
         
-	for key in addKeys:
-            if key not in orderedKeys:  
-                orderedKeys.insert(1,key)
+            if cfg['OnlyKeepNLTK'] != False and not cfg['KeepDiscardsNLTK']:
+  		collectedContent = [entry for entry in collectedContent if str(entry['nltkCat']) in cfg['OnlyKeepNLTK']]
+  		
+            if cfg['Sanitize'] != False:
+                collectedContent = [sanitizeTweet(tweet) for tweet in collectedContent]
+            
+            
+            print "Writing collected tweets to "+outName+".csv"   
+            outFile = open(directory+outName+'.csv', "w") 
+            csvOut = csv.DictWriter(outFile,orderedKeys)
+            csvOut.writer.writerow(orderedKeys)
+            csvOut.writerows(collectedContent)
+
+            #DEBOO TAG TRACKING
+            getTags(cfg,collectedContent)
+            
+            
+            """for row in collectedContent:
+                print row
+                csvOut.writerow(row)
+                print "complete"""
                 
-        for pos in range(len(collectedContent)):
-            for key in orderedKeys:
-                if key not in collectedContent[pos].keys():
-                    collectedContent[pos][key] = 'NaN'
-                else:
-                    collectedContent[pos][key] = stripUnicode(collectedContent[pos][key])
-        
-        if cfg['OnlyKeepNLTK'] != False:
-		collectedContent = [entry for entry in collectedContent if str(entry['nltkCat']) in cfg['OnlyKeepNLTK']]
-		
-        if cfg['Sanitize'] != False:
-            collectedContent = [sanitizeTweet(tweet) for tweet in collectedContent]
-        
-        
-        print "Writing collected tweets to "+outName+".csv"   
-        outFile = open(directory+outName+'.csv', "w") 
-        csvOut = csv.DictWriter(outFile,orderedKeys)
-        csvOut.writer.writerow(orderedKeys)
-        csvOut.writerows(collectedContent)
-        
-        print "DEBOOOZLE"
-        getTags(cfg,collectedContent)
-        
-        
-        """for row in collectedContent:
-            print row
-            csvOut.writerow(row)
-            print "complete"""
-        outFile.close()
-        print "...complete"
-        return geoCache
+            outFile.close()
+            print "...complete"
+            return geoCache
              
     else:
         print "Directory empty, reformat skipped"
         return geoCache
 
 
+
+
 def getTags(cfg,data):
     """Pulls top n tags for last m days"""
-    nDays = 5
-    nTags = 10
-    dates =[]
-    for entry in data:
-        dates.append(entry['created_at'])
-    print "MAXDATE", max(dates)
+    dates = [parser.parse(entry['created_at']) for entry in data]
     rightBound = max(dates)
-    leftBound = rightBound - datetime.timedelta(days = nDays)
-    print "UNFILTERED", len(data)
-    data = [entry for entry in data if leftBound < entry['created_at'] < rightBound]
-    print "FILTERED", len(data)
-    tags = countHashTags(data,nTags)
+    leftBound = rightBound - datetime.timedelta(days = cfg['TrackHashDays'])
+    data = [entry for entry in data if leftBound < parser.parse(entry['created_at']) < rightBound]
+    tags = countHashTags(data,cfg['TrackHashCount'])
+    print "Top",cfg['TrackHashCount'], "hashtags for past", cfg['TrackHashDays'], "days:", tags
     return tags
+    
+    
     
     
 def countHashTags(data,number):
     """Pulls top tags from data sample"""
-    entries = data['text']
+    entries = [entry['text'] for entry in data]
+        
     counts = dict()
     toReturn = []
     for entry in entries:
@@ -958,130 +962,12 @@ def countHashTags(data,number):
                     counts[word] = 1
                 else:
                     counts[word] += 1
+                    
     sortedCounts= sorted(counts.iteritems(), key=itemgetter(-1))[-number:]
-    for count in reversed(sortedCounts):
-        print count
-        toReturn.append(count[0])
-    return toReturn
-    
-    
-    
-        
+    return [count[0] for count in reversed(sortedCounts)]
 
-"""def reformatOld(directory, lists, cfg, geoCache):
-    #Keeps old content up to date with latests queries & settings
-    homeDirectory = directory
-    keepTypes = ['accepted']*cfg['KeepAccepted']+['partial']*cfg['KeepPartial']+['excluded']*cfg['KeepExcluded']
-    
-    print "Preparing to reformat from raw tweets..."
-    if cfg['OutDir'] not in directory.lower():
-        directory += cfg['OutDir'] + cfg['Method'] + '/'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-        fileList = []
-    else:
-        fileList = os.listdir(directory)
-        oldFiltered = [i for i in fileList if i.lower().startswith('filteredtweets')]
-        fileList = [i for i in fileList if i.lower().startswith('raw')]
-    
-    
-    if len(fileList) != 0:
-        if lists == 'null':
-            lists = updateWordBanks(homeDirectory, cfg)
-        
-        collectedContent = []
-        collectedTypes = {}
-            
-        fileList = filter(lambda i: not os.path.isdir(directory+i), fileList)
-        count = 0
-        for fileName in fileList:
-            inFile = open(directory+fileName)
-            content = json.load(inFile)
-            filteredContent = []
-            
-            
-            print "Reclassifying", fileName, "by updated lists"
-            
-            if lists != "null":
-                jsonToDictFix(content)
-            
-            for tweet in content:
-                count += 1
-                if count%250 == 0:
-                    print "\t",count,"tweets sorted"
-                if count%cfg['PickleInterval'] == 0:
-                    updateGeoPickle(geoCache,cfg['Directory']+pickleName)
-                tweet['text'] = tweet['text'].replace('\n',' ')
-                tweetType = checkTweet(lists['conditions'],lists['qualifiers'],lists['exclusions'], tweet['text'])
-                if tweetType in keepTypes:
-                    geoType = isInBox(cfg,geoCache,tweet)
-                    if geoType['inBox'] or cfg['KeepUnlocated']:
-                        timeData = outTime(localTime(tweet,cfg))
-                        collectedTypes[str(tweet['id'])] = {'tweetType':tweetType,
-                            'geoType':geoType['text'],
-                            'lat':geoType['lat'],
-                            'lon':geoType['lon'],
-                            'fineLocation':geoType['trueLoc'],
-                            'place':geoType['place'],
-                            'day':timeData['day'],
-                            'time':timeData['time'],
-                            'date':timeData['date']}
-                        
-
-                    filteredContent.append(tweet)
-            
-            collectedContent += filteredContent                  
-
-            filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
-            outName = fileName.replace('Raw','FilteredTweets')
-            print "\tSaving file as", outName
-            with open(directory+outName, 'w') as outFile:
-                json.dump(filteredContent,outFile)
-            outFile.close()
-            
-        collectedContent = cleanJson(collectedContent,cfg,collectedTypes)
-        outName = cfg['FileName']+"_CollectedTweets"
-        
-        print "Writing collected tweets to "+outName+".json"
-        with open(directory+outName+'.json', 'w') as outFile:
-                json.dump(collectedContent,outFile)
-        outFile.close()
-        print "...complete"
-        
-        jsonToDictFix(collectedContent)
-        
-        orderedKeys = sorted(collectedContent[0].keys())
-        orderedKeys.insert(0,orderedKeys.pop(orderedKeys.index('text')))
-        
-        addKeys = ["score","check3","check2","check1"]
-        for key in addKeys:
-            if key not in orderedKeys:  
-                orderedKeys.insert(1,key)
-                
-        for pos in range(len(collectedContent)):
-            for key in orderedKeys:
-                if key not in collectedContent[pos].keys():
-                    collectedContent[pos][key] = 'NaN'
-                else:
-                    collectedContent[pos][key] = stripUnicode(collectedContent[pos][key])
-        
-        print "Writing collected tweets to "+outName+".csv"   
-        outFile = open(directory+outName+'.csv', "w") 
-        csvOut = csv.DictWriter(outFile,orderedKeys)
-        csvOut.writer.writerow(orderedKeys)
-        csvOut.writerows(collectedContent)
-        #for row in collectedContent:
-        #    print row
-        #    csvOut.writerow(row)
-        #    print "complete
-        #outFile.close()
-        #print "...complete"
-        #return geoCache
-             
-    else:
-        print "Directory empty, reformat skipped"
-        return geoCache"""
-
+      
+      
       
 def cleanJson(jsonOriginal, cfg, types):
     """Returns filtered json with only desired data & derived data"""
@@ -1132,7 +1018,9 @@ def getConfig(directory):
                 'KeepRetweets':False,'StrictGeoFilter':False,
                 'StrictWordFilter':False,'Sanitize':False,
                 'KeepDiscardsNLTK':False,'DiscardSampleNLTK':0,
-                'MakeFilteredJson':False,'SendEvery':1}
+                'MakeFilteredJson':False,'SendEvery':1,
+                'TrackHashTags':False,'TrackHashDays':10,
+                'TrackHashCount':5}
     
     if type(directory) is str:
         if directory == "null":

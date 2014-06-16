@@ -343,9 +343,7 @@ class giSeeker():
                                 allFound += len(cellCollected)
 				if self.useNLTK:
 				    if self.cfg['KeepDiscardsNLTK']:
-				        print "DEBOO KEEP DISCARD", self.cfg['KeepDiscardsNLTK'], self.cfg['DiscardSampleNLTK'], type(self.cfg['KeepDiscardsNLTK']), type(self.cfg['DiscardSampleNLTK']), uniform(0,1)
 				        cellCollected = [status for status in cellCollected if status.id not in foundIDs and (TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] or uniform(0,1)<self.cfg['DiscardSampleNLTK'])]
-
 				    else:
                                         cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]
                                 
@@ -441,9 +439,7 @@ class giSeeker():
                                                     
                             if self.useNLTK:
 				    if self.cfg['KeepDiscardsNLTK']:
-				        print "DEBOO KEEP DISCARD", self.cfg['KeepDiscardsNLTK'], self.cfg['DiscardSampleNLTK'], type(self.cfg['KeepDiscardsNLTK']), type(self.cfg['DiscardSampleNLTK']), uniform(0,1)
 				        cellCollected = [status for status in cellCollected if status.id not in foundIDs and (TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] or uniform(0,1)<self.cfg['DiscardSampleNLTK'])]
-
 				    else:
                                         cellCollected = [status for status in cellCollected if TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] and status.id not in foundIDs]                        
                                 
