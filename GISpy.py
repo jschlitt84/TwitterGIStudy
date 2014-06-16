@@ -22,6 +22,7 @@ from geopy import geocoders
 from dateutil import parser
 from math import pi, cos, ceil
 from multiprocessing import Process, Queue, cpu_count, Manager
+from operator import itemgetter
 
 #timeArgs = "%A_%m-%d-%y_%H-%M-%S"
 timeArgs = '%a %d %b %Y %H:%M:%S'
@@ -909,6 +910,11 @@ def reformatOld(directory, lists, cfg, geoCache, NLTKClassifier):
         csvOut = csv.DictWriter(outFile,orderedKeys)
         csvOut.writer.writerow(orderedKeys)
         csvOut.writerows(collectedContent)
+        
+        print "DEBOOOZLE"
+        getTags(cfg,collectedContent)
+        
+        
         """for row in collectedContent:
             print row
             csvOut.writerow(row)
@@ -922,6 +928,45 @@ def reformatOld(directory, lists, cfg, geoCache, NLTKClassifier):
         return geoCache
 
 
+def getTags(cfg,data):
+    """Pulls top n tags for last m days"""
+    nDays = 5
+    nTags = 10
+    print "DATAKEYS", data.keys()
+    print "DATESKEYS", dates.keys()
+    dates = data['created_at']
+    print "MAXDATE", max(dates)
+    rightBound = max(dates)
+    leftBound = rightBound - datetime.timedelta(days = nDays)
+    print "UNFILTERED", len(data)
+    data = [entry for entry in data if leftBound < entry['created_at'] < rightBound]
+    print "FILTERED", len(data)
+    tags = countHashTags(data,nTags)
+    return tags
+    
+    
+def countHashTags(data,number):
+    """Pulls top tags from data sample"""
+    entries = data['text']
+    counts = dict()
+    toReturn = []
+    for entry in entries:
+        words = entry.split(' ')
+        for word in words:
+            if word.startswith('#'):
+                if word not in counts.keys():
+                    counts[word] = 1
+                else:
+                    counts[word] += 1
+    sortedCounts= sorted(counts.iteritems(), key=itemgetter(-1))[-number:]
+    for count in reversed(sortedCounts):
+        print count
+        toReturn.append(count[0])
+    return toReturn
+    
+    
+    
+        
 
 """def reformatOld(directory, lists, cfg, geoCache):
     #Keeps old content up to date with latests queries & settings
@@ -1170,9 +1215,9 @@ def sanitizeTweet(tweet):
     tweet['text'] = ' '.join(words)
     if 'user_screen_name' in tweet.keys():
         tweet['user_screen_name'] = "ATweeter"
-    if str(tweet['lat']).lower() != 'nan' and len(str(tweet['lat'])) > 4:
+    if str(tweet['lat']).lower() != 'nan' and len(str(tweet['lat'])) > 6:
         tweet['lat'] = float(str(tweet['lat'])[:-2])
-    if str(tweet['lon']).lower() != 'nan' and len(str(tweet['lon'])) > 4:
+    if str(tweet['lon']).lower() != 'nan' and len(str(tweet['lon'])) > 6:
         tweet['lon'] = float(str(tweet['lon'])[:-2])
     tweet['id'] = int(str(tweet['id'])[:-2]+'00')
     return tweet

@@ -150,8 +150,6 @@ class giSeeker():
                     login['name'] = self.cfg['userLogin']
                 
                 self.cfg['_login_'] = login
-                #print "DEBOO2", self.cfg['_login_'], '\n', self.api
-                #END TEST CODE
                 
                 self.cfg['Directory'] = directory
                 reformatOld(directory, lists, self.cfg, self.geoCache,self.NLTK)
@@ -345,6 +343,7 @@ class giSeeker():
                                 allFound += len(cellCollected)
 				if self.useNLTK:
 				    if self.cfg['KeepDiscardsNLTK']:
+				        print "DEBOO KEEP DISCARD", self.cfg['KeepDiscardsNLTK'], self.cfg['DiscardSampleNLTK'], type(self.cfg['KeepDiscardsNLTK']), type(self.cfg['DiscardSampleNLTK']), uniform(0,1)
 				        cellCollected = [status for status in cellCollected if status.id not in foundIDs and (TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] or uniform(0,1)<self.cfg['DiscardSampleNLTK'])]
 
 				    else:
@@ -442,6 +441,7 @@ class giSeeker():
                                                     
                             if self.useNLTK:
 				    if self.cfg['KeepDiscardsNLTK']:
+				        print "DEBOO KEEP DISCARD", self.cfg['KeepDiscardsNLTK'], self.cfg['DiscardSampleNLTK'], type(self.cfg['KeepDiscardsNLTK']), type(self.cfg['DiscardSampleNLTK']), uniform(0,1)
 				        cellCollected = [status for status in cellCollected if status.id not in foundIDs and (TweetMatch.classifySingle(status.text,self.NLTK) in self.cfg['OnlyKeepNLTK'] or uniform(0,1)<self.cfg['DiscardSampleNLTK'])]
 
 				    else:
