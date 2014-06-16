@@ -932,9 +932,9 @@ def getTags(cfg,data):
     """Pulls top n tags for last m days"""
     nDays = 5
     nTags = 10
-    print "DATAKEYS", data.keys()
-    print "DATESKEYS", dates.keys()
-    dates = data['created_at']
+    dates =[]
+    for entry in data():
+        dates.append(entry['created_at'])
     print "MAXDATE", max(dates)
     rightBound = max(dates)
     leftBound = rightBound - datetime.timedelta(days = nDays)
