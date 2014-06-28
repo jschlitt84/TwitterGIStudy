@@ -769,7 +769,6 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
                 jsonToDictFix(content)
             
             if  cfg['DaysBack'] != 'all' and type(cfg['DaysBack']) is int:
-                print "Filtering tweets to hide those older than", cfg['DaysBack'], 'days'
                 leftBound = datetime.datetime.utcnow() - datetime.timedelta(days = cfg['DaysBack'])
                 content = [item for item in content if parser.parse(item['created_at']).replace(tzinfo=None) > leftBound]
             
@@ -802,6 +801,7 @@ def getReformatted(directory, lists, cfg, pickleMgmt, fileList, core, out_q, kee
             collectedContent += filteredContent  
             #print "DEBOOO123", useNLTK,cfg['OnlyKeepNLTK'],count,len(collectedContent) , len(collectedTypes)              
             filteredContent = cleanJson(filteredContent,cfg,collectedTypes)
+            #print "DEBOOO123", cfg['OnlyKeepNLTK'],count,len(collectedContent),len(filteredContent), len(collectedTypes)
             
             outName = fileName.replace('Raw','FilteredTweets')
 
